@@ -22,3 +22,6 @@ src-tauri/binaries/
 # Local data
 *.db
 *.sqlite
+
+# macOS
+.DS_Store

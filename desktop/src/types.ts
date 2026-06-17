@@ -58,3 +58,11 @@ export interface Album {
   num_tracks: number | null;
   release_date: string | null;
 }
+
+export type FavoriteType = "track" | "artist" | "album";
+
+export interface SearchResults {
+  artists: Artist[];
+  albums: Album[];
+  tracks: Track[];
+}

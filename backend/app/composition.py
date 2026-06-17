@@ -7,11 +7,13 @@ from __future__ import annotations
 from functools import lru_cache
 
 from .application.auth.use_cases import ConnectTidal, GetStatus, Logout, RestoreSession
+from .application.catalog.use_cases import SearchCatalog
 from .application.library.use_cases import (
     GetFavorites,
     GetPlaylists,
     GetPlaylistTracks,
     ImportLibrary,
+    SetFavorite,
 )
 from .infrastructure.persistence.repository import SqliteLibraryRepository
 from .infrastructure.security.token_store import KeyringTokenStore
@@ -35,6 +37,9 @@ class Container:
         self.get_playlists = GetPlaylists(self.repository)
         self.get_playlist_tracks = GetPlaylistTracks(self.repository)
         self.get_favorites = GetFavorites(self.repository)
+
+        self.search_catalog = SearchCatalog(self.tidal)
+        self.set_favorite = SetFavorite(self.tidal)
 
 
 @lru_cache(maxsize=1)

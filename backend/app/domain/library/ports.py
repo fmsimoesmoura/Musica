@@ -13,6 +13,16 @@ class MusicGateway(Protocol):
         """Pull playlists (+ordered tracks) and favorites into a domain snapshot."""
 
 
+class FavoritesGateway(Protocol):
+    """Mutates the user's favorites on the music service."""
+
+    def add(self, item_type: str, item_id: str) -> bool:
+        """item_type is one of: track | artist | album."""
+
+    def remove(self, item_type: str, item_id: str) -> bool:
+        ...
+
+
 class LibraryRepository(Protocol):
     """Local persistence of the imported library."""
 

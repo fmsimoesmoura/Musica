@@ -2,10 +2,12 @@ import type {
   Album,
   Artist,
   ConnectionStatus,
+  FavoriteType,
   ImportSummary,
   LinkLogin,
   Playlist,
   PollResult,
+  SearchResults,
   Track,
 } from "./types";
 
@@ -43,4 +45,11 @@ export const api = {
   favoriteArtists: () => req<Artist[]>("/favorites?type=artists"),
   favoriteTracks: () => req<Track[]>("/favorites?type=tracks"),
   favoriteAlbums: () => req<Album[]>("/favorites?type=albums"),
+
+  search: (q: string, include = "artists,albums,tracks") =>
+    req<SearchResults>(`/search?q=${encodeURIComponent(q)}&include=${include}`),
+  addFavorite: (type: FavoriteType, id: string) =>
+    req<{ ok: boolean }>(`/favorites/${type}/${encodeURIComponent(id)}`, { method: "POST" }),
+  removeFavorite: (type: FavoriteType, id: string) =>
+    req<{ ok: boolean }>(`/favorites/${type}/${encodeURIComponent(id)}`, { method: "DELETE" }),
 };

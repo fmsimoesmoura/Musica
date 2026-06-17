@@ -2,13 +2,16 @@ import { useEffect, useState } from "react";
 import { api } from "./api";
 import { ConnectPanel } from "./components/ConnectPanel";
 import { LibraryView } from "./components/LibraryView";
+import { SearchView } from "./components/SearchView";
 import "./App.css";
 
 type Phase = "starting" | "disconnected" | "connected";
+type View = "library" | "search";
 
 export default function App() {
   const [phase, setPhase] = useState<Phase>("starting");
   const [userName, setUserName] = useState<string | null>(null);
+  const [view, setView] = useState<View>("library");
 
   useEffect(() => {
     let cancelled = false;
@@ -64,7 +67,17 @@ export default function App() {
   return (
     <div className="app">
       <header className="appbar">
-        <strong>Tidal Manager</strong>
+        <div className="appbar-left">
+          <strong>Tidal Manager</strong>
+          <nav className="nav">
+            <button className={view === "library" ? "active" : ""} onClick={() => setView("library")}>
+              Library
+            </button>
+            <button className={view === "search" ? "active" : ""} onClick={() => setView("search")}>
+              Search
+            </button>
+          </nav>
+        </div>
         <div className="appbar-right">
           <span className="muted">{userName}</span>
           <button className="ghost" onClick={logout}>
@@ -72,7 +85,7 @@ export default function App() {
           </button>
         </div>
       </header>
-      <LibraryView />
+      {view === "library" ? <LibraryView /> : <SearchView />}
     </div>
   );
 }

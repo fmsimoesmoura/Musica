@@ -22,6 +22,7 @@ from ...domain.auth.entities import (
     LoginStatus,
     OAuthTokens,
 )
+from ...domain.catalog.entities import CatalogSearchResults
 from ...domain.library.entities import Album, Artist, LibrarySnapshot, Playlist, Track
 
 log = logging.getLogger("infra.tidal")
@@ -144,6 +145,39 @@ class TidalApiGateway:
         snap.albums = list(seen_albums.values())
         snap.tracks = list(seen_tracks.values())
         return snap
+
+    # ---- CatalogGateway -----------------------------------------------------
+    def search(self, query: str, include: list[str]) -> CatalogSearchResults:
+        model_map = {
+            "artists": tidalapi.Artist,
+            "albums": tidalapi.Album,
+            "tracks": tidalapi.Track,
+        }
+        models = [model_map[i] for i in include if i in model_map]
+        raw = self._session.search(query, models=models or None, limit=30)
+        results = CatalogSearchResults()
+        if "artists" in include:
+            results.artists = [_artist(a) for a in (raw.get("artists") or [])]
+        if "albums" in include:
+            results.albums = [_album(a) for a in (raw.get("albums") or [])]
+        if "tracks" in include:
+            results.tracks = [_track(t) for t in (raw.get("tracks") or [])]
+        return results
+
+    # ---- FavoritesGateway ---------------------------------------------------
+    def add(self, item_type: str, item_id: str) -> bool:
+        fav = self._session.user.favorites
+        fn = {"track": fav.add_track, "artist": fav.add_artist, "album": fav.add_album}[item_type]
+        return bool(fn(item_id))
+
+    def remove(self, item_type: str, item_id: str) -> bool:
+        fav = self._session.user.favorites
+        fn = {
+            "track": fav.remove_track,
+            "artist": fav.remove_artist,
+            "album": fav.remove_album,
+        }[item_type]
+        return bool(fn(item_id))
 
     # ---- internals ----------------------------------------------------------
     def _is_connected(self) -> bool:

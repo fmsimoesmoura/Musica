@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+backend/.venv/
+*.egg-info/
+
+# Secrets / local config
+.env
+backend/.env
+
+# Node / frontend
+node_modules/
+dist/
+.vite/
+
+# Rust / Tauri
+target/
+src-tauri/target/
+src-tauri/binaries/
+
+# Local data
+*.db
+*.sqlite

@@ -140,6 +140,31 @@ To run the backend alone (e.g. for curl testing):
 cd backend && .venv/bin/python -m app.main --port 8765
 ```
 
+## Building a distributable (.app / .dmg)
+
+```bash
+# 1. Bundle the Python sidecar into a single binary (PyInstaller),
+#    named with the host target triple and placed in src-tauri/binaries/.
+cd backend && uv pip install --python .venv/bin/python pyinstaller && ./build_sidecar.sh
+
+# 2. Build the desktop app — embeds the sidecar via Tauri externalBin.
+cd ../desktop && npm run tauri build
+# → src-tauri/target/release/bundle/macos/Tidal Manager.app
+# → src-tauri/target/release/bundle/dmg/Tidal Manager_0.1.0_aarch64.dmg
+```
+
+In **release** the Rust shell launches the bundled `tidal-backend` (placed next to
+the app executable); in **dev** it launches the venv Python — so `npm run tauri dev`
+needs no PyInstaller build.
+
+**Two notes for the unsigned personal build:**
+- **Gatekeeper:** the app isn't notarized, so first open via right-click → *Open*
+  (or `xattr -dr com.apple.quarantine "Tidal Manager.app"`). Distribution/notarization
+  needs an Apple Developer certificate.
+- **Keychain:** on first launch macOS asks to allow the new binary to read the
+  stored Tidal tokens — click **Always Allow** once. (A proper signing identity
+  avoids re-prompts across rebuilds.)
+
 ### HTTP API (sidecar)
 
 | Method | Path | Purpose | Behavior notes |
@@ -176,8 +201,9 @@ OAuth tokens are stored in the macOS keychain.
 - **M2 — Search & favorite** ✅ full-catalog search (tracks/albums/artists), ♥ add/remove favorites.
 - **M3 — Hybrid discovery** ✅ seed from your favorites → Tidal similar-artists for
   candidates → Claude ranks & explains fit → ♥ picks to your favorites.
-- **M4 — Playlist editing + packaging** — editing ✅ (create/rename/delete, add/remove
-  tracks, save discovery picks to a playlist); packaging ⏳ (PyInstaller sidecar +
-  Tauri `externalBin` + signed `.app`/`.dmg`).
+- **M4 — Playlist editing + packaging** ✅ editing (create/rename/delete, add/remove
+  tracks, save discovery picks to a playlist) + packaging (PyInstaller sidecar via
+  Tauri `externalBin` → `.app`/`.dmg`; code-signing/notarization optional, needs an
+  Apple Developer cert).
 
 Progress is tracked in GitHub issues (#4 is the roadmap).

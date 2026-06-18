@@ -11,6 +11,7 @@ struct Backend(Mutex<Option<Child>>);
 /// Release packaging will instead use a PyInstaller sidecar binary (milestone 4);
 /// that path is intentionally not wired yet.
 fn spawn_backend() -> Option<Child> {
+    // Dev: run the project's venv Python directly (fast iteration, no bundling).
     #[cfg(debug_assertions)]
     {
         // CARGO_MANIFEST_DIR = <repo>/desktop/src-tauri at compile time.
@@ -26,6 +27,20 @@ fn spawn_backend() -> Option<Child> {
         {
             Ok(child) => return Some(child),
             Err(e) => eprintln!("Failed to spawn backend ({:?}): {e}", python),
+        }
+    }
+    // Release: run the PyInstaller sidecar bundled next to the app executable
+    // (Tauri places externalBin binaries in Contents/MacOS/, triple suffix stripped).
+    #[cfg(not(debug_assertions))]
+    {
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(dir) = exe.parent() {
+                let sidecar = dir.join("tidal-backend");
+                match Command::new(&sidecar).args(["--port", "8765"]).spawn() {
+                    Ok(child) => return Some(child),
+                    Err(e) => eprintln!("Failed to spawn bundled sidecar ({:?}): {e}", sidecar),
+                }
+            }
         }
     }
     None

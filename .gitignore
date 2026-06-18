@@ -25,3 +25,8 @@ src-tauri/binaries/
 
 # macOS
 .DS_Store
+
+# PyInstaller
+backend/build/
+backend/dist/
+*.spec

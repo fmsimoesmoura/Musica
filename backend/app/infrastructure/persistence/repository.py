@@ -87,6 +87,10 @@ class SqliteLibraryRepository:
     def list_favorite_albums(self) -> list[Album]:
         return self._favorites(AlbumRow, "album", _album_entity)
 
+    def all_artist_ids(self) -> set[int]:
+        with Session(engine) as session:
+            return set(session.exec(select(ArtistRow.id)).all())
+
     def _favorites(self, row_model, item_type: str, to_entity):
         with Session(engine) as session:
             favs = session.exec(

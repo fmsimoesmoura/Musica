@@ -179,6 +179,15 @@ class TidalApiGateway:
         }[item_type]
         return bool(fn(item_id))
 
+    # ---- RecommendationGateway ----------------------------------------------
+    def similar_artists(self, artist_id: int) -> list[Artist]:
+        artist = self._session.artist(artist_id)
+        try:
+            return [_artist(a) for a in (artist.get_similar() or [])]
+        except Exception as e:
+            log.warning("get_similar failed for artist %s: %s", artist_id, e)
+            return []
+
     # ---- internals ----------------------------------------------------------
     def _is_connected(self) -> bool:
         try:

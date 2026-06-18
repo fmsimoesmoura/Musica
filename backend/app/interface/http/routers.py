@@ -11,6 +11,7 @@ from .dto import to_list
 auth = APIRouter(prefix="/auth", tags=["auth"])
 lib = APIRouter(tags=["library"])
 catalog = APIRouter(tags=["catalog"])
+discovery = APIRouter(tags=["discovery"])
 
 
 @auth.post("/start")
@@ -94,3 +95,18 @@ def remove_favorite(item_type: str, item_id: str):
         return {"ok": container().set_favorite.remove(item_type, item_id)}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@discovery.post("/discover")
+def discover(limit: int = Query(12, ge=1, le=30)):
+    _require_connection()
+    try:
+        result = container().generate_recommendations(max_recommendations=limit)
+    except RuntimeError as e:
+        # e.g. missing ANTHROPIC_API_KEY or an AI provider error.
+        raise HTTPException(status_code=400, detail=str(e))
+    return {
+        "based_on": result.based_on,
+        "note": result.note,
+        "recommendations": to_list(result.recommendations),
+    }

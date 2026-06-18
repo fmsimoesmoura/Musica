@@ -31,11 +31,12 @@ Two processes:
 
 ```
 backend/app/
-├── domain/{auth,library,catalog}/  entities + port interfaces (pure Python)
-├── application/{auth,library,catalog}/ use cases (ConnectTidal, ImportLibrary,
-│                                   SearchCatalog, SetFavorite, …)
+├── domain/{auth,library,catalog,discovery}/  entities + port interfaces (pure Python)
+├── application/{auth,library,catalog,discovery}/ use cases (ConnectTidal, ImportLibrary,
+│                                   SearchCatalog, SetFavorite, GenerateRecommendations, …)
 ├── infrastructure/
 │   ├── tidal/gateway.py        the only file that imports tidalapi
+│   ├── ai/curator.py           the only file that imports the Anthropic SDK
 │   ├── persistence/            SQLModel tables, engine, repository
 │   └── security/token_store.py OS keychain token storage
 ├── interface/http/routers.py   FastAPI routes (thin)
@@ -43,7 +44,7 @@ backend/app/
 └── main.py                     FastAPI app + entrypoint
 
 desktop/
-├── src/                        React UI (ConnectPanel, LibraryView, SearchView, api client)
+├── src/                        React UI (ConnectPanel, LibraryView, SearchView, DiscoverView)
 └── src-tauri/                  Rust shell (spawns + supervises the sidecar)
 ```
 
@@ -85,6 +86,19 @@ From any search result you can ♥ an artist, album, or track. This **writes
 directly to your Tidal favorites** (add or remove). The UI toggles optimistically;
 the local DB reflects the change on the next **Re-sync**. *Use case:* `SetFavorite`.
 
+### Discover (hybrid AI)
+Finds **new artists you don't already have** that fit your taste:
+1. **Seed** from your favorite artists (up to 12).
+2. **Candidates** from Tidal's *similar artists* for each seed, scored by how many
+   seeds they relate to (artists already in your library are filtered out).
+3. **Curate** — Claude (`claude-opus-4-8` by default) ranks the candidates and writes
+   a one-sentence reason each fits your taste, grounded in your actual seed artists.
+
+Each recommendation can be ♥-favorited straight to Tidal. Requires
+`ANTHROPIC_API_KEY` in `backend/.env`; without it the Discover tab returns a clear
+"add your key" message and the rest of the app is unaffected.
+*Use case:* `GenerateRecommendations`; adapters `TidalApiGateway.similar_artists` + `AnthropicCurator`.
+
 ## Running (dev)
 
 Prereqs: Python 3.12 (`uv`), Node, Rust.
@@ -122,6 +136,7 @@ cd backend && .venv/bin/python -m app.main --port 8765
 | GET | `/search?q=&include=artists,albums,tracks` | catalog search | live Tidal call; top ~30 per type; needs connection |
 | POST | `/favorites/{type}/{id}` | add a favorite | writes to Tidal; `type` ∈ track/artist/album |
 | DELETE | `/favorites/{type}/{id}` | remove a favorite | writes to Tidal |
+| POST | `/discover?limit=` | AI-curated new-artist recommendations | Tidal similar-artists + Claude; needs `ANTHROPIC_API_KEY` |
 
 All endpoints except `/health` and the auth routes require an active Tidal
 connection (return `401` otherwise).
@@ -133,9 +148,9 @@ OAuth tokens are stored in the macOS keychain.
 
 - **M1 — Auth + library import** ✅ connect to Tidal, import playlists & favorites, browse them.
 - **M2 — Search & favorite** ✅ full-catalog search (tracks/albums/artists), ♥ add/remove favorites.
-- **M3 — Hybrid discovery** (in progress) seed from your favorites → Tidal radio/similar-artists
-  for candidates → Claude ranks & explains fit → save picks to a playlist.
-- **M4 — Playlist editing + packaging** create/edit playlists; PyInstaller sidecar
-  + signed `.app`/`.dmg`.
+- **M3 — Hybrid discovery** ✅ seed from your favorites → Tidal similar-artists for
+  candidates → Claude ranks & explains fit → ♥ picks to your favorites.
+- **M4 — Playlist editing + packaging** create/edit playlists (incl. saving discovery
+  picks to a generated playlist); PyInstaller sidecar + signed `.app`/`.dmg`.
 
 Progress is tracked in GitHub issues (#4 is the roadmap).

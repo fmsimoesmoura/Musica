@@ -2,6 +2,7 @@ import type {
   Album,
   Artist,
   ConnectionStatus,
+  DiscoveryResult,
   FavoriteType,
   ImportSummary,
   LinkLogin,
@@ -52,4 +53,7 @@ export const api = {
     req<{ ok: boolean }>(`/favorites/${type}/${encodeURIComponent(id)}`, { method: "POST" }),
   removeFavorite: (type: FavoriteType, id: string) =>
     req<{ ok: boolean }>(`/favorites/${type}/${encodeURIComponent(id)}`, { method: "DELETE" }),
+
+  discover: (limit = 12) =>
+    req<DiscoveryResult>(`/discover?limit=${limit}`, { method: "POST" }),
 };

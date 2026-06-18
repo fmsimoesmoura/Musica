@@ -3,10 +3,11 @@ import { api } from "./api";
 import { ConnectPanel } from "./components/ConnectPanel";
 import { LibraryView } from "./components/LibraryView";
 import { SearchView } from "./components/SearchView";
+import { DiscoverView } from "./components/DiscoverView";
 import "./App.css";
 
 type Phase = "starting" | "disconnected" | "connected";
-type View = "library" | "search";
+type View = "library" | "search" | "discover";
 
 export default function App() {
   const [phase, setPhase] = useState<Phase>("starting");
@@ -76,6 +77,9 @@ export default function App() {
             <button className={view === "search" ? "active" : ""} onClick={() => setView("search")}>
               Search
             </button>
+            <button className={view === "discover" ? "active" : ""} onClick={() => setView("discover")}>
+              Discover
+            </button>
           </nav>
         </div>
         <div className="appbar-right">
@@ -85,7 +89,9 @@ export default function App() {
           </button>
         </div>
       </header>
-      {view === "library" ? <LibraryView /> : <SearchView />}
+      {view === "library" && <LibraryView />}
+      {view === "search" && <SearchView />}
+      {view === "discover" && <DiscoverView />}
     </div>
   );
 }

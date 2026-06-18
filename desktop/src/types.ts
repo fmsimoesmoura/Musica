@@ -66,3 +66,16 @@ export interface SearchResults {
   albums: Album[];
   tracks: Track[];
 }
+
+export interface Recommendation {
+  artist_id: number;
+  name: string;
+  reason: string;
+  score: number;
+}
+
+export interface DiscoveryResult {
+  based_on: string[];
+  note: string | null;
+  recommendations: Recommendation[];
+}

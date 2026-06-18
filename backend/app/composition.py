@@ -8,6 +8,7 @@ from functools import lru_cache
 
 from .application.auth.use_cases import ConnectTidal, GetStatus, Logout, RestoreSession
 from .application.catalog.use_cases import SearchCatalog
+from .application.discovery.use_cases import GenerateRecommendations
 from .application.library.use_cases import (
     GetFavorites,
     GetPlaylists,
@@ -15,6 +16,7 @@ from .application.library.use_cases import (
     ImportLibrary,
     SetFavorite,
 )
+from .infrastructure.ai.curator import AnthropicCurator
 from .infrastructure.persistence.repository import SqliteLibraryRepository
 from .infrastructure.security.token_store import KeyringTokenStore
 from .infrastructure.tidal.gateway import TidalApiGateway
@@ -26,6 +28,7 @@ class Container:
         self.tidal = TidalApiGateway()
         self.token_store = KeyringTokenStore()
         self.repository = SqliteLibraryRepository()
+        self.curator = AnthropicCurator()
 
         # Use cases.
         self.connect = ConnectTidal(self.tidal, self.token_store)
@@ -40,6 +43,10 @@ class Container:
 
         self.search_catalog = SearchCatalog(self.tidal)
         self.set_favorite = SetFavorite(self.tidal)
+
+        self.generate_recommendations = GenerateRecommendations(
+            self.repository, self.tidal, self.curator
+        )
 
 
 @lru_cache(maxsize=1)

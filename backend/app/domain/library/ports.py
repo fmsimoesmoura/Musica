@@ -43,3 +43,10 @@ class LibraryRepository(Protocol):
 
     def list_favorite_albums(self) -> list[Album]:
         ...
+
+    def all_artist_ids(self) -> set[int]:
+        """Every artist id present in the imported library (favorites + playlists).
+
+        Used by discovery to filter out artists the user already knows.
+        """
+        ...

@@ -38,3 +38,5 @@ KEYRING_SERVICE = "tidal-manager"
 KEYRING_USER = "oauth-session"
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+# Claude model used for AI-curated discovery (M3). Override via env if desired.
+DISCOVERY_MODEL = os.environ.get("DISCOVERY_MODEL", "claude-opus-4-8")

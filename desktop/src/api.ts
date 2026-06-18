@@ -57,4 +57,19 @@ export const api = {
   discover: (limit = 12) =>
     req<DiscoveryResult>(`/discover?limit=${limit}`, { method: "POST" }),
   discoverBackend: () => req<{ backend: string }>("/discover/backend"),
+  saveDiscovery: (name: string, artistIds: number[]) =>
+    req<{ playlist_id: string; track_count: number }>("/discover/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, artist_ids: artistIds, tracks_per_artist: 1 }),
+    }),
+
+  createPlaylist: (title: string) =>
+    req<{ playlist_id: string }>("/playlists", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    }),
+  deletePlaylist: (id: string) =>
+    req<{ ok: boolean }>(`/playlists/${encodeURIComponent(id)}`, { method: "DELETE" }),
 };

@@ -31,6 +31,29 @@ export function DiscoverView() {
     }
   }
 
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState<string | null>(null);
+
+  async function saveAsPlaylist() {
+    if (!result || result.recommendations.length === 0) return;
+    const name = window.prompt("Playlist name:", "Discoveries");
+    if (!name) return;
+    setSaving(true);
+    setError(null);
+    setSaved(null);
+    try {
+      const r = await api.saveDiscovery(
+        name,
+        result.recommendations.map((x) => x.artist_id),
+      );
+      setSaved(`Saved “${name}” — ${r.track_count} tracks added to Tidal.`);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function favorite(artistId: number) {
     setFaved((prev) => new Set(prev).add(artistId));
     try {
@@ -55,12 +78,20 @@ export function DiscoverView() {
             {backend && <> Curated by: <strong>{BACKEND_LABEL[backend] ?? backend}</strong>.</>}
           </p>
         </div>
-        <button className="primary" disabled={loading} onClick={generate}>
-          {loading ? "Curating…" : "Generate"}
-        </button>
+        <div className="toolbar-actions">
+          {result && result.recommendations.length > 0 && (
+            <button disabled={saving} onClick={saveAsPlaylist}>
+              {saving ? "Saving…" : "Save as playlist"}
+            </button>
+          )}
+          <button className="primary" disabled={loading} onClick={generate}>
+            {loading ? "Curating…" : "Generate"}
+          </button>
+        </div>
       </div>
 
       {error && <p className="error">{error}</p>}
+      {saved && <p className="muted small">{saved}</p>}
       {result?.note && <p className="muted">{result.note}</p>}
 
       {result && result.based_on.length > 0 && (

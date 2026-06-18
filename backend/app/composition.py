@@ -9,7 +9,9 @@ from functools import lru_cache
 
 from .application.auth.use_cases import ConnectTidal, GetStatus, Logout, RestoreSession
 from .application.catalog.use_cases import SearchCatalog
+from .application.discovery.save_to_playlist import SaveRecommendationsToPlaylist
 from .application.discovery.use_cases import GenerateRecommendations
+from .application.library.playlists import ManagePlaylists
 from .application.library.use_cases import (
     GetFavorites,
     GetPlaylists,
@@ -82,6 +84,11 @@ class Container:
             self.repository, self.tidal, self.curator
         )
         self.curator_backend = self.curator.backend_name
+
+        self.manage_playlists = ManagePlaylists(self.tidal, self.tidal, self.repository)
+        self.save_recommendations = SaveRecommendationsToPlaylist(
+            self.tidal, self.tidal, self.tidal, self.repository
+        )
 
 
 @lru_cache(maxsize=1)

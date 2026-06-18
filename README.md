@@ -111,6 +111,14 @@ So Discover works out of the box with no keys (`none`), upgrades to a free local
 LLM if Ollama is running, and to Claude if a key is present. See issue #5 for the
 analysis (incl. a spike on using a Claude Max subscription via the Agent SDK).
 
+### Playlist editing & save-to-playlist
+Create, rename, and delete playlists, and add/remove tracks — all **written
+directly to Tidal**, with just the affected playlist re-fetched into the local DB
+so the UI updates without a full re-sync. From **Discover**, "Save as playlist"
+turns the current picks into a new Tidal playlist seeded with each artist's top
+track. *Use cases:* `ManagePlaylists`, `SaveRecommendationsToPlaylist`; adapter
+`TidalApiGateway` (create/add/remove/edit/delete via `UserPlaylist`).
+
 ## Running (dev)
 
 Prereqs: Python 3.12 (`uv`), Node, Rust.
@@ -148,7 +156,13 @@ cd backend && .venv/bin/python -m app.main --port 8765
 | GET | `/search?q=&include=artists,albums,tracks` | catalog search | live Tidal call; top ~30 per type; needs connection |
 | POST | `/favorites/{type}/{id}` | add a favorite | writes to Tidal; `type` ∈ track/artist/album |
 | DELETE | `/favorites/{type}/{id}` | remove a favorite | writes to Tidal |
-| POST | `/discover?limit=` | AI-curated new-artist recommendations | Tidal similar-artists + Claude; needs `ANTHROPIC_API_KEY` |
+| POST | `/discover?limit=` | AI-curated new-artist recommendations | Tidal similar-artists + curator backend |
+| POST | `/discover/save` | save discovery picks as a Tidal playlist | `{name, artist_ids, tracks_per_artist}` |
+| POST | `/playlists` | create a playlist | `{title, description?}` → `{playlist_id}` |
+| PATCH | `/playlists/{id}` | rename/edit a playlist | `{title?, description?}` |
+| DELETE | `/playlists/{id}` | delete a playlist | writes to Tidal |
+| POST | `/playlists/{id}/tracks` | add tracks | `{track_ids: [int]}` |
+| DELETE | `/playlists/{id}/tracks/{track_id}` | remove a track | writes to Tidal |
 
 All endpoints except `/health` and the auth routes require an active Tidal
 connection (return `401` otherwise).
@@ -162,7 +176,8 @@ OAuth tokens are stored in the macOS keychain.
 - **M2 — Search & favorite** ✅ full-catalog search (tracks/albums/artists), ♥ add/remove favorites.
 - **M3 — Hybrid discovery** ✅ seed from your favorites → Tidal similar-artists for
   candidates → Claude ranks & explains fit → ♥ picks to your favorites.
-- **M4 — Playlist editing + packaging** create/edit playlists (incl. saving discovery
-  picks to a generated playlist); PyInstaller sidecar + signed `.app`/`.dmg`.
+- **M4 — Playlist editing + packaging** — editing ✅ (create/rename/delete, add/remove
+  tracks, save discovery picks to a playlist); packaging ⏳ (PyInstaller sidecar +
+  Tauri `externalBin` + signed `.app`/`.dmg`).
 
 Progress is tracked in GitHub issues (#4 is the roadmap).

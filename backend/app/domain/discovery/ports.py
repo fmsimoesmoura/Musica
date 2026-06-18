@@ -13,6 +13,10 @@ class RecommendationGateway(Protocol):
     def similar_artists(self, artist_id: int) -> list[Artist]:
         ...
 
+    def artist_top_tracks(self, artist_id: int, limit: int = 1) -> list[int]:
+        """Top track ids for an artist — used to seed a playlist from picks."""
+        ...
+
 
 class Curator(Protocol):
     """Ranks candidates against the user's taste and explains the fit (AI)."""

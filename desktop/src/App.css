@@ -143,6 +143,19 @@ code {
 
 .library { flex: 1; display: flex; flex-direction: column; padding: 14px 16px; overflow: hidden; }
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.toolbar-actions { display: flex; gap: 8px; align-items: center; }
+.row-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.row-del {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+  opacity: 0;
+}
+.row:hover .row-del { opacity: 1; }
+.row-del:hover { color: var(--error); }
 .tabs { display: flex; gap: 6px; }
 .tabs button { background: transparent; }
 .tabs button.active { border-color: var(--accent); color: var(--accent); }

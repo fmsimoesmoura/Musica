@@ -91,6 +91,37 @@ class SqliteLibraryRepository:
         with Session(engine) as session:
             return set(session.exec(select(ArtistRow.id)).all())
 
+    def save_playlist_snapshot(self, snapshot: LibrarySnapshot) -> None:
+        # Partial upsert: only the playlists in the snapshot; favorites untouched.
+        with Session(engine) as session:
+            for a in snapshot.artists:
+                session.merge(_artist_row(a))
+            for al in snapshot.albums:
+                session.merge(_album_row(al))
+            for t in snapshot.tracks:
+                session.merge(_track_row(t))
+            for pl in snapshot.playlists:
+                session.merge(_playlist_row(pl))
+            for pid, track_ids in snapshot.playlist_tracks.items():
+                for old in session.exec(
+                    select(PlaylistTrackRow).where(PlaylistTrackRow.playlist_id == pid)
+                ).all():
+                    session.delete(old)
+                for pos, tid in enumerate(track_ids):
+                    session.add(PlaylistTrackRow(playlist_id=pid, position=pos, track_id=tid))
+            session.commit()
+
+    def delete_playlist(self, playlist_id: str) -> None:
+        with Session(engine) as session:
+            for pt in session.exec(
+                select(PlaylistTrackRow).where(PlaylistTrackRow.playlist_id == playlist_id)
+            ).all():
+                session.delete(pt)
+            row = session.get(PlaylistRow, playlist_id)
+            if row:
+                session.delete(row)
+            session.commit()
+
     def _favorites(self, row_model, item_type: str, to_entity):
         with Session(engine) as session:
             favs = session.exec(

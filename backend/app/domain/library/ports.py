@@ -12,6 +12,28 @@ class MusicGateway(Protocol):
     def fetch_library_snapshot(self) -> LibrarySnapshot:
         """Pull playlists (+ordered tracks) and favorites into a domain snapshot."""
 
+    def fetch_playlist(self, playlist_id: str) -> LibrarySnapshot:
+        """Re-read a single playlist (+its tracks) for local refresh after a write."""
+
+
+class PlaylistWriter(Protocol):
+    """Mutates the user's playlists on the music service."""
+
+    def create_playlist(self, title: str, description: str = "") -> str:
+        """Create a playlist; returns its new id."""
+
+    def add_tracks(self, playlist_id: str, track_ids: list[int]) -> None:
+        ...
+
+    def remove_track(self, playlist_id: str, track_id: int) -> None:
+        ...
+
+    def edit_playlist(self, playlist_id: str, title: str | None, description: str | None) -> None:
+        ...
+
+    def delete_playlist(self, playlist_id: str) -> None:
+        ...
+
 
 class FavoritesGateway(Protocol):
     """Mutates the user's favorites on the music service."""
@@ -49,4 +71,13 @@ class LibraryRepository(Protocol):
 
         Used by discovery to filter out artists the user already knows.
         """
+        ...
+
+    def save_playlist_snapshot(self, snapshot: LibrarySnapshot) -> None:
+        """Upsert the playlists in `snapshot` (+their tracks/ordering) WITHOUT
+        touching favorites or other playlists. Used to refresh one edited playlist."""
+        ...
+
+    def delete_playlist(self, playlist_id: str) -> None:
+        """Remove a playlist and its track ordering from the local DB."""
         ...

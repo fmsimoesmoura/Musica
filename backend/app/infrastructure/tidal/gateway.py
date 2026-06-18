@@ -188,6 +188,58 @@ class TidalApiGateway:
             log.warning("get_similar failed for artist %s: %s", artist_id, e)
             return []
 
+    def artist_top_tracks(self, artist_id: int, limit: int = 1) -> list[int]:
+        try:
+            tracks = self._session.artist(artist_id).get_top_tracks(limit=limit)
+            return [int(t.id) for t in (tracks or [])]
+        except Exception as e:
+            log.warning("get_top_tracks failed for artist %s: %s", artist_id, e)
+            return []
+
+    # ---- PlaylistWriter ------------------------------------------------------
+    def create_playlist(self, title: str, description: str = "") -> str:
+        pl = self._session.user.create_playlist(title, description or "")
+        return str(pl.id)
+
+    def add_tracks(self, playlist_id: str, track_ids: list[int]) -> None:
+        self._writable(playlist_id).add([str(t) for t in track_ids])
+
+    def remove_track(self, playlist_id: str, track_id: int) -> None:
+        self._writable(playlist_id).remove_by_id(str(track_id))
+
+    def edit_playlist(self, playlist_id: str, title: str | None, description: str | None) -> None:
+        self._writable(playlist_id).edit(title=title, description=description)
+
+    def delete_playlist(self, playlist_id: str) -> None:
+        self._writable(playlist_id).delete()
+
+    def fetch_playlist(self, playlist_id: str) -> LibrarySnapshot:
+        """Re-read a single playlist (+its tracks) into a snapshot for local refresh."""
+        pl = self._session.playlist(playlist_id)
+        snap = LibrarySnapshot()
+        seen_artists: dict[int, Artist] = {}
+        seen_albums: dict[int, Album] = {}
+        seen_tracks: dict[int, Track] = {}
+        snap.playlists.append(_playlist(pl))
+        ids: list[int] = []
+        for t in _paginate(lambda l, o, _p=pl: _p.tracks(l, o)):
+            artist = _attr(t, "artist")
+            album = _attr(t, "album")
+            if artist and int(artist.id) not in seen_artists:
+                seen_artists[int(artist.id)] = _artist(artist)
+            if album and int(album.id) not in seen_albums:
+                seen_albums[int(album.id)] = _album(album)
+            seen_tracks[int(t.id)] = _track(t)
+            ids.append(int(t.id))
+        snap.playlist_tracks[str(pl.id)] = ids
+        snap.artists = list(seen_artists.values())
+        snap.albums = list(seen_albums.values())
+        snap.tracks = list(seen_tracks.values())
+        return snap
+
+    def _writable(self, playlist_id: str) -> "tidalapi.playlist.UserPlaylist":
+        return tidalapi.playlist.UserPlaylist(self._session, playlist_id)
+
     # ---- internals ----------------------------------------------------------
     def _is_connected(self) -> bool:
         try:

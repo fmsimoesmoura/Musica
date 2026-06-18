@@ -4,9 +4,30 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 from ...composition import container
 from .dto import to_list
+
+
+class CreatePlaylistBody(BaseModel):
+    title: str
+    description: str = ""
+
+
+class EditPlaylistBody(BaseModel):
+    title: str | None = None
+    description: str | None = None
+
+
+class AddTracksBody(BaseModel):
+    track_ids: list[int]
+
+
+class SaveDiscoveryBody(BaseModel):
+    name: str
+    artist_ids: list[int]
+    tracks_per_artist: int = 1
 
 auth = APIRouter(prefix="/auth", tags=["auth"])
 lib = APIRouter(tags=["library"])
@@ -67,6 +88,43 @@ def get_favorites(type: str = Query("tracks")):
     return to_list(container().get_favorites(item_type))
 
 
+# ---- playlist write (M4) ----
+
+@lib.post("/playlists")
+def create_playlist(body: CreatePlaylistBody):
+    _require_connection()
+    pid = container().manage_playlists.create(body.title, body.description)
+    return {"playlist_id": pid}
+
+
+@lib.patch("/playlists/{playlist_id}")
+def edit_playlist(playlist_id: str, body: EditPlaylistBody):
+    _require_connection()
+    container().manage_playlists.rename(playlist_id, body.title, body.description)
+    return {"ok": True}
+
+
+@lib.delete("/playlists/{playlist_id}")
+def delete_playlist(playlist_id: str):
+    _require_connection()
+    container().manage_playlists.delete(playlist_id)
+    return {"ok": True}
+
+
+@lib.post("/playlists/{playlist_id}/tracks")
+def add_tracks(playlist_id: str, body: AddTracksBody):
+    _require_connection()
+    container().manage_playlists.add_tracks(playlist_id, body.track_ids)
+    return {"ok": True}
+
+
+@lib.delete("/playlists/{playlist_id}/tracks/{track_id}")
+def remove_track(playlist_id: str, track_id: int):
+    _require_connection()
+    container().manage_playlists.remove_track(playlist_id, track_id)
+    return {"ok": True}
+
+
 @catalog.get("/search")
 def search(q: str = Query(...), include: str = Query("artists,albums,tracks")):
     _require_connection()
@@ -116,3 +174,11 @@ def discover(limit: int = Query(12, ge=1, le=30)):
         "backend": container().curator_backend,
         "recommendations": to_list(result.recommendations),
     }
+
+
+@discovery.post("/discover/save")
+def save_discovery(body: SaveDiscoveryBody):
+    _require_connection()
+    return container().save_recommendations(
+        body.name, body.artist_ids, body.tracks_per_artist
+    )

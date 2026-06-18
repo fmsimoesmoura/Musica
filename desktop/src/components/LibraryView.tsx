@@ -59,6 +59,29 @@ export function LibraryView() {
     }
   }
 
+  async function newPlaylist() {
+    const title = window.prompt("New playlist name:");
+    if (!title) return;
+    try {
+      await api.createPlaylist(title);
+      await refresh();
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  async function removePlaylist(pl: Playlist, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!window.confirm(`Delete playlist “${pl.title || "untitled"}”? This removes it from Tidal.`)) return;
+    try {
+      await api.deletePlaylist(pl.id);
+      if (selected?.id === pl.id) setSelected(null);
+      await refresh();
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
   const empty = playlists.length === 0 && artists.length === 0 && tracks.length === 0;
 
   return (
@@ -75,9 +98,12 @@ export function LibraryView() {
             Tracks ({tracks.length})
           </button>
         </div>
-        <button className="primary" disabled={importing} onClick={runImport}>
-          {importing ? "Importing…" : empty ? "Import library" : "Re-sync"}
-        </button>
+        <div className="toolbar-actions">
+          {tab === "playlists" && <button onClick={newPlaylist}>New playlist</button>}
+          <button className="primary" disabled={importing} onClick={runImport}>
+            {importing ? "Importing…" : empty ? "Import library" : "Re-sync"}
+          </button>
+        </div>
       </div>
 
       {summary && (
@@ -102,7 +128,12 @@ export function LibraryView() {
                   onClick={() => openPlaylist(p)}
                 >
                   <span className="title">{p.title || "(untitled)"}</span>
-                  <span className="badge">{p.num_tracks}</span>
+                  <span className="row-right">
+                    <span className="badge">{p.num_tracks}</span>
+                    <button className="row-del" title="Delete playlist" onClick={(e) => removePlaylist(p, e)}>
+                      ×
+                    </button>
+                  </span>
                 </li>
               ))}
             </ul>

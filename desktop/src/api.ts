@@ -56,4 +56,5 @@ export const api = {
 
   discover: (limit = 12) =>
     req<DiscoveryResult>(`/discover?limit=${limit}`, { method: "POST" }),
+  discoverBackend: () => req<{ backend: string }>("/discover/backend"),
 };

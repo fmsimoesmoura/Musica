@@ -1,12 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { DiscoveryResult } from "../types";
+
+const BACKEND_LABEL: Record<string, string> = {
+  anthropic: "Claude (API)",
+  ollama: "local LLM (Ollama)",
+  none: "Tidal similarity (no LLM)",
+};
 
 export function DiscoverView() {
   const [result, setResult] = useState<DiscoveryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [faved, setFaved] = useState<Set<number>>(new Set());
+  const [backend, setBackend] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.discoverBackend().then((b) => setBackend(b.backend)).catch(() => {});
+  }, []);
 
   async function generate() {
     setLoading(true);
@@ -40,7 +51,8 @@ export function DiscoverView() {
         <div>
           <h2 className="discover-title">Discover new artists</h2>
           <p className="muted small">
-            Seeds from your favorites → Tidal's similar artists → ranked &amp; explained by Claude.
+            Seeds from your favorites → Tidal's similar artists → ranked &amp; explained.
+            {backend && <> Curated by: <strong>{BACKEND_LABEL[backend] ?? backend}</strong>.</>}
           </p>
         </div>
         <button className="primary" disabled={loading} onClick={generate}>

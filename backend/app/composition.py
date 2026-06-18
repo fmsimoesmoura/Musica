@@ -4,6 +4,7 @@ the rest of the app is untouched.
 """
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 
 from .application.auth.use_cases import ConnectTidal, GetStatus, Logout, RestoreSession
@@ -16,10 +17,43 @@ from .application.library.use_cases import (
     ImportLibrary,
     SetFavorite,
 )
+from .config import ANTHROPIC_API_KEY, CURATOR_BACKEND, OLLAMA_HOST
 from .infrastructure.ai.curator import AnthropicCurator
+from .infrastructure.ai.fallback_curator import NoLlmCurator
+from .infrastructure.ai.ollama_curator import OllamaCurator
 from .infrastructure.persistence.repository import SqliteLibraryRepository
 from .infrastructure.security.token_store import KeyringTokenStore
 from .infrastructure.tidal.gateway import TidalApiGateway
+
+log = logging.getLogger("composition")
+
+
+def _ollama_reachable() -> bool:
+    import requests
+
+    try:
+        return requests.get(f"{OLLAMA_HOST.rstrip('/')}/api/tags", timeout=0.5).ok
+    except requests.exceptions.RequestException:
+        return False
+
+
+def _build_curator():
+    """Resolve the configured curator backend (see config.CURATOR_BACKEND)."""
+    backend = CURATOR_BACKEND
+    if backend == "auto":
+        if ANTHROPIC_API_KEY:
+            backend = "anthropic"
+        elif _ollama_reachable():
+            backend = "ollama"
+        else:
+            backend = "none"
+    chosen = {
+        "anthropic": AnthropicCurator,
+        "ollama": OllamaCurator,
+        "none": NoLlmCurator,
+    }.get(backend, NoLlmCurator)
+    log.info("Discovery curator backend: %s", chosen.backend_name)
+    return chosen()
 
 
 class Container:
@@ -28,7 +62,7 @@ class Container:
         self.tidal = TidalApiGateway()
         self.token_store = KeyringTokenStore()
         self.repository = SqliteLibraryRepository()
-        self.curator = AnthropicCurator()
+        self.curator = _build_curator()
 
         # Use cases.
         self.connect = ConnectTidal(self.tidal, self.token_store)
@@ -47,6 +81,7 @@ class Container:
         self.generate_recommendations = GenerateRecommendations(
             self.repository, self.tidal, self.curator
         )
+        self.curator_backend = self.curator.backend_name
 
 
 @lru_cache(maxsize=1)

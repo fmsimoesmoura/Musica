@@ -94,10 +94,22 @@ Finds **new artists you don't already have** that fit your taste:
 3. **Curate** — Claude (`claude-opus-4-8` by default) ranks the candidates and writes
    a one-sentence reason each fits your taste, grounded in your actual seed artists.
 
-Each recommendation can be ♥-favorited straight to Tidal. Requires
-`ANTHROPIC_API_KEY` in `backend/.env`; without it the Discover tab returns a clear
-"add your key" message and the rest of the app is unaffected.
-*Use case:* `GenerateRecommendations`; adapters `TidalApiGateway.similar_artists` + `AnthropicCurator`.
+Each recommendation can be ♥-favorited straight to Tidal.
+*Use case:* `GenerateRecommendations`; candidate adapter `TidalApiGateway.similar_artists`.
+
+**The curation backend is pluggable** (`CURATOR_BACKEND`, default `auto`) — the
+`Curator` port means each is just an adapter:
+
+| `CURATOR_BACKEND` | Adapter | Needs | Notes |
+|---|---|---|---|
+| `anthropic` | `AnthropicCurator` | `ANTHROPIC_API_KEY` | Best quality; billed at API rates (separate from a Claude Max subscription) |
+| `ollama` | `OllamaCurator` | local [Ollama](https://ollama.com) + a model | Free, private, offline; lower nuance |
+| `none` | `NoLlmCurator` | nothing | Ranks by Tidal similarity score; templated reasons; zero setup |
+| `auto` (default) | — | — | Claude if a key is set → else Ollama if running → else `none` |
+
+So Discover works out of the box with no keys (`none`), upgrades to a free local
+LLM if Ollama is running, and to Claude if a key is present. See issue #5 for the
+analysis (incl. a spike on using a Claude Max subscription via the Agent SDK).
 
 ## Running (dev)
 

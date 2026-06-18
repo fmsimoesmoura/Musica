@@ -97,16 +97,22 @@ def remove_favorite(item_type: str, item_id: str):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@discovery.get("/discover/backend")
+def discover_backend():
+    return {"backend": container().curator_backend}
+
+
 @discovery.post("/discover")
 def discover(limit: int = Query(12, ge=1, le=30)):
     _require_connection()
     try:
         result = container().generate_recommendations(max_recommendations=limit)
     except RuntimeError as e:
-        # e.g. missing ANTHROPIC_API_KEY or an AI provider error.
+        # e.g. missing key, Ollama not running, or an AI provider error.
         raise HTTPException(status_code=400, detail=str(e))
     return {
         "based_on": result.based_on,
         "note": result.note,
+        "backend": container().curator_backend,
         "recommendations": to_list(result.recommendations),
     }

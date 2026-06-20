@@ -19,7 +19,12 @@ fn spawn_backend() -> Option<Child> {
             .join("..")
             .join("..")
             .join("backend");
-        let python = backend_dir.join(".venv").join("bin").join("python");
+        // venv layout differs: Scripts/python.exe on Windows, bin/python elsewhere.
+        let python = if cfg!(windows) {
+            backend_dir.join(".venv").join("Scripts").join("python.exe")
+        } else {
+            backend_dir.join(".venv").join("bin").join("python")
+        };
         match Command::new(&python)
             .args(["-m", "app.main", "--port", "8765"])
             .current_dir(&backend_dir)
@@ -29,13 +34,15 @@ fn spawn_backend() -> Option<Child> {
             Err(e) => eprintln!("Failed to spawn backend ({:?}): {e}", python),
         }
     }
-    // Release: run the PyInstaller sidecar bundled next to the app executable
-    // (Tauri places externalBin binaries in Contents/MacOS/, triple suffix stripped).
+    // Release: run the PyInstaller sidecar bundled next to the app executable.
+    // Tauri strips the target-triple suffix and places it next to the main exe
+    // (Contents/MacOS/ on macOS; the install dir on Windows).
     #[cfg(not(debug_assertions))]
     {
+        let name = if cfg!(windows) { "tidal-backend.exe" } else { "tidal-backend" };
         if let Ok(exe) = std::env::current_exe() {
             if let Some(dir) = exe.parent() {
-                let sidecar = dir.join("tidal-backend");
+                let sidecar = dir.join(name);
                 match Command::new(&sidecar).args(["--port", "8765"]).spawn() {
                     Ok(child) => return Some(child),
                     Err(e) => eprintln!("Failed to spawn bundled sidecar ({:?}): {e}", sidecar),

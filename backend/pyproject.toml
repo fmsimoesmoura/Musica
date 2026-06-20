@@ -11,6 +11,8 @@ dependencies = [
     "keyring>=25.0",
     "python-dotenv>=1.0",
     "anthropic>=0.40",
+    # Windows keyring backend (Credential Locker) — only installed on Windows.
+    "pywin32-ctypes>=0.2; sys_platform == 'win32'",
 ]
 
 [tool.uv]

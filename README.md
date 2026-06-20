@@ -157,6 +157,22 @@ In **release** the Rust shell launches the bundled `tidal-backend` (placed next 
 the app executable); in **dev** it launches the venv Python — so `npm run tauri dev`
 needs no PyInstaller build.
 
+### Windows (and CI) builds
+
+You can't cross-build a Windows app from macOS — PyInstaller and Tauri's Windows
+bundler/WebView2/MSVC toolchain are all per-OS. So Windows bundles are produced by
+GitHub Actions on a `windows-latest` runner (`.github/workflows/release.yml`),
+which builds the sidecar **and** the app and uploads installers as artifacts.
+
+- **Run it:** GitHub → Actions → *build* → **Run workflow** (or push a `v*` tag).
+- **Download:** the run's artifacts — `tidal-manager-windows` (`.msi` + NSIS `.exe`)
+  and `tidal-manager-macos` (`.dmg`).
+- The same workflow validates the macOS build too.
+
+To build Windows locally instead, run the same two commands (`build_sidecar.sh`
+then `npm run tauri build`) **on a Windows machine** with Python, Node, Rust, and
+the MSVC build tools installed.
+
 **Two notes for the unsigned personal build:**
 - **Gatekeeper:** the app isn't notarized, so first open via right-click → *Open*
   (or `xattr -dr com.apple.quarantine "Tidal Manager.app"`). Distribution/notarization

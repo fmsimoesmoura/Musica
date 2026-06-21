@@ -91,6 +91,13 @@ def build_provider_adapters(provider: str) -> ProviderAdapters:
         gw = SpotifyGateway()
         rec = LastfmRecommendationGateway(gw)
         return ProviderAdapters(gw, gw, gw, gw, gw, rec)
+    if provider == "qobuz":
+        from .infrastructure.lastfm.recommendation import LastfmRecommendationGateway
+        from .infrastructure.qobuz.gateway import QobuzGateway
+
+        gw = QobuzGateway()
+        rec = LastfmRecommendationGateway(gw)
+        return ProviderAdapters(gw, gw, gw, gw, gw, rec)
     raise ValueError(f"provider not implemented yet: {provider}")
 
 

@@ -94,5 +94,9 @@ SPOTIFY_SCOPES = (
     "user-follow-read user-follow-modify"
 )
 
-# --- Last.fm (free) — similar-artists source for Spotify discovery ---
+# --- Last.fm (free) — similar-artists source for Spotify/Qobuz discovery ---
 LASTFM_API_KEY = os.environ.get("LASTFM_API_KEY")
+
+# --- Qobuz connector (unofficial API; email/password login) ---
+# app_id is scraped from the Qobuz web player bundle or requested from Qobuz.
+QOBUZ_APP_ID = os.environ.get("QOBUZ_APP_ID")

@@ -6,14 +6,32 @@ import type { LinkLogin } from "../types";
 export function ConnectPanel({
   onConnected,
   providerName = "Tidal",
+  mode = "oauth",
 }: {
   onConnected: (name: string | null) => void;
   providerName?: string;
+  mode?: "oauth" | "credentials";
 }) {
   const [login, setLogin] = useState<LinkLogin | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const pollRef = useRef<number | null>(null);
+
+  async function loginWithCredentials() {
+    setError(null);
+    setBusy(true);
+    try {
+      const s = await api.loginCredentials(username, password);
+      if (s.connected) onConnected(s.user_name);
+      else setError("Login failed — check your credentials.");
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   useEffect(() => () => {
     if (pollRef.current) window.clearInterval(pollRef.current);
@@ -60,7 +78,25 @@ export function ConnectPanel({
         <h1>Tidal Manager</h1>
         <p className="muted">Connect your {providerName} account to manage playlists and discover music.</p>
 
-        {!login ? (
+        {mode === "credentials" ? (
+          <div className="creds">
+            <input
+              placeholder={`${providerName} email`}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && loginWithCredentials()}
+            />
+            <button className="primary" disabled={busy || !username || !password} onClick={loginWithCredentials}>
+              {busy ? "Connecting…" : `Connect ${providerName}`}
+            </button>
+          </div>
+        ) : !login ? (
           <button className="primary" disabled={busy} onClick={start}>
             {busy ? "Starting…" : `Connect ${providerName}`}
           </button>

@@ -34,6 +34,11 @@ class SaveDiscoveryBody(BaseModel):
 class ActiveProviderBody(BaseModel):
     provider: str
 
+
+class CredentialsBody(BaseModel):
+    username: str
+    password: str
+
 auth = APIRouter(prefix="/auth", tags=["auth"])
 lib = APIRouter(tags=["library"])
 catalog = APIRouter(tags=["catalog"])
@@ -82,6 +87,26 @@ def auth_status():
 def auth_logout():
     container().logout()
     return {"connected": False}
+
+
+@auth.post("/credentials")
+def auth_credentials(body: CredentialsBody):
+    """Username/password login for providers without a browser flow (e.g. Qobuz)."""
+    c = container()
+    login = getattr(c.auth, "login_with_credentials", None)
+    if login is None:
+        raise HTTPException(status_code=400, detail="Active provider does not support password login")
+    try:
+        ok = login(body.username, body.password)
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if not ok:
+        raise HTTPException(status_code=401, detail="Login failed — check your credentials")
+    tokens = c.auth.current_tokens()
+    if tokens:
+        c.token_store.save(tokens)
+    status = c.get_status()
+    return {"connected": status.connected, "user_name": status.user_name}
 
 
 @auth.get("/spotify/callback", response_class=HTMLResponse)

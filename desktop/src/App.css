@@ -74,6 +74,17 @@ code {
   word-break: break-all;
 }
 
+.creds { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.creds input {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 9px 12px;
+  font-size: 14px;
+}
+.creds input:focus { outline: none; border-color: var(--accent); }
+
 .login-pending { margin-top: 14px; }
 .spinner {
   margin: 16px auto 0;

@@ -15,7 +15,8 @@ const PROVIDER_LABELS: Record<string, string> = {
   spotify: "Spotify",
   qobuz: "Qobuz",
 };
-const IMPLEMENTED = new Set(["tidal", "spotify"]);
+const IMPLEMENTED = new Set(["tidal", "spotify", "qobuz"]);
+const CREDENTIALS_PROVIDERS = new Set(["qobuz"]);
 
 export default function App() {
   const [phase, setPhase] = useState<Phase>("starting");
@@ -135,6 +136,7 @@ export default function App() {
       {phase === "disconnected" && (
         <ConnectPanel
           providerName={PROVIDER_LABELS[active] ?? active}
+          mode={CREDENTIALS_PROVIDERS.has(active) ? "credentials" : "oauth"}
           onConnected={(name) => {
             setUserName(name);
             setPhase("connected");

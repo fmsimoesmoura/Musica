@@ -39,6 +39,12 @@ export const api = {
   authPoll: (loginId: string) =>
     req<PollResult>(`/auth/poll?login_id=${encodeURIComponent(loginId)}`),
   logout: () => req<{ connected: boolean }>("/auth/logout", { method: "POST" }),
+  loginCredentials: (username: string, password: string) =>
+    req<ConnectionStatus>("/auth/credentials", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    }),
 
   importLibrary: () => req<ImportSummary>("/library/import", { method: "POST" }),
   playlists: () => req<Playlist[]>("/playlists"),

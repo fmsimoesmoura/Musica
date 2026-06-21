@@ -1,9 +1,9 @@
 # Tidal Manager
 
-**v0.3.0 · macOS + Windows · Tidal + Spotify**
+**v0.4.0 · macOS + Windows · Tidal + Spotify + Qobuz**
 
-A personal desktop app to manage your music — across **Tidal** and **Spotify**
-(Qobuz planned) — search each catalog, and discover new artists that fit your taste
+A personal desktop app to manage your music — across **Tidal**, **Spotify**, and
+**Qobuz** — search each catalog, and discover new artists that fit your taste
 (streaming "similar artists" + AI curation). Built with a Python sidecar + a
 Tauri/React desktop shell; ships for **macOS (Apple Silicon)** and **Windows (x64)**.
 
@@ -29,7 +29,7 @@ are isolated per provider (`library-<provider>.db`) with per-provider logins.
 |---|---|---|---|---|---|---|
 | **Tidal** | device/link | ✅ | ✅ | ✅ | ✅ | Tidal similar-artists |
 | **Spotify** | OAuth PKCE | ✅ | ✅ | ✅ | ✅ | **Last.fm** similar-artists¹ |
-| **Qobuz** | _planned_ | – | – | – | – | – |
+| **Qobuz** | email/password | ✅ | ✅ | ✅ | ✅ | **Last.fm** similar-artists¹ |
 
 ¹ Spotify deprecated its `related-artists`/`recommendations` endpoints for new
 apps, so Spotify discovery uses Last.fm's free `artist.getSimilar` for candidates,
@@ -51,6 +51,25 @@ artist-top-tracks (used by "save discovery as playlist") still works.
 4. In the app, switch the provider toggle to **Spotify** → **Connect Spotify** →
    approve in the browser. (New Spotify apps are "development mode": the owner needs
    Premium and ~25 users max — fine for personal use.)
+
+### Qobuz setup (one-time)
+
+Qobuz has no official API; this uses the same reverse-engineered API as the web
+player, which needs an **app_id** (and your account login).
+
+1. Find the `app_id`: open [play.qobuz.com](https://play.qobuz.com) → DevTools →
+   search the JS bundle for `app_id` (or take it from a project like `qobuz-dl`),
+   and put it in `backend/.env`:
+   ```
+   QOBUZ_APP_ID=your_app_id
+   LASTFM_API_KEY=your_lastfm_key   # for discovery (shared with Spotify)
+   ```
+2. In the app, switch to **Qobuz** and enter your Qobuz **email + password**
+   (sent once to Qobuz for a long-lived token, then stored in the OS credential
+   store — never written to disk in plaintext).
+
+> Like the Tidal connector, this rides an undocumented API and is ToS-gray —
+> fine for personal use, may break if Qobuz changes things.
 
 ## Download & install
 
@@ -283,6 +302,7 @@ code-signing certificate.
 | GET | `/providers` | list providers | `[{provider, active, connected}]` |
 | POST | `/providers/active` | switch active provider | `{provider}`; restores that provider's session |
 | GET | `/auth/spotify/callback` | Spotify OAuth redirect target | exchanges the code; closes the loop |
+| POST | `/auth/credentials` | email/password login (Qobuz) | `{username, password}` → stores token |
 | POST | `/auth/start` | begin device/link login | returns `{login_id, verification_uri, user_code, expires_in}` |
 | GET | `/auth/poll?login_id=` | poll login status | `status`: `pending`/`authorized`/`expired`/`unknown`; persists tokens on success |
 | GET | `/auth/status` | connection state | `{connected, user_name}` |
@@ -323,7 +343,8 @@ keyring backend is available.
 - **Cross-platform (v0.2.0)** ✅ macOS `.dmg` + Windows `.msi`/`.exe`, built on CI.
   Code-signing/notarization remains optional (needs paid certs).
 - **Connectors (v0.3.0)** ✅ multi-provider foundation + **Spotify** (OAuth PKCE,
-  import/search/favorites/playlists, Last.fm-powered discovery). **Qobuz** is the
-  next connector (reuses the same scaffolding).
+  import/search/favorites/playlists, Last.fm-powered discovery).
+- **Qobuz connector (v0.4.0)** ✅ email/password login, import/search/favorites/
+  playlists, Last.fm-powered discovery.
 
 Progress is tracked in GitHub issues (#4 is the roadmap).

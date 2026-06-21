@@ -21,15 +21,16 @@ _SIMILAR_PER_SEED = 8
 
 
 class LastfmRecommendationGateway:
-    def __init__(self, spotify_gateway):
-        self._spotify = spotify_gateway
+    def __init__(self, catalog_gateway):
+        # Any gateway with get_artist_name/search/artist_top_tracks (Spotify or Qobuz).
+        self._cat = catalog_gateway
 
     def similar_artists(self, artist_id: str) -> list[Artist]:
         if not LASTFM_API_KEY:
             raise RuntimeError(
                 "LASTFM_API_KEY is not set. Get a free key at last.fm/api and add it to backend/.env."
             )
-        name = self._spotify.get_artist_name(artist_id)
+        name = self._cat.get_artist_name(artist_id)
         if not name:
             return []
         try:
@@ -58,7 +59,7 @@ class LastfmRecommendationGateway:
             if not sname:
                 continue
             try:
-                results = self._spotify.search(sname, ["artists"])
+                results = self._cat.search(sname, ["artists"])
             except Exception:
                 continue
             match = next((a for a in results.artists if a.name.lower() == sname.lower()), None)
@@ -69,4 +70,4 @@ class LastfmRecommendationGateway:
         return out
 
     def artist_top_tracks(self, artist_id: str, limit: int = 1) -> list[str]:
-        return self._spotify.artist_top_tracks(artist_id, limit)
+        return self._cat.artist_top_tracks(artist_id, limit)

@@ -8,6 +8,7 @@ import type {
   LinkLogin,
   Playlist,
   PollResult,
+  ProviderInfo,
   SearchResults,
   Track,
 } from "./types";
@@ -57,7 +58,15 @@ export const api = {
   discover: (limit = 12) =>
     req<DiscoveryResult>(`/discover?limit=${limit}`, { method: "POST" }),
   discoverBackend: () => req<{ backend: string }>("/discover/backend"),
-  saveDiscovery: (name: string, artistIds: number[]) =>
+  providers: () => req<ProviderInfo[]>("/providers"),
+  setProvider: (provider: string) =>
+    req<{ active: string }>("/providers/active", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider }),
+    }),
+
+  saveDiscovery: (name: string, artistIds: string[]) =>
     req<{ playlist_id: string; track_count: number }>("/discover/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

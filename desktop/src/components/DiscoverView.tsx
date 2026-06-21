@@ -12,7 +12,7 @@ export function DiscoverView() {
   const [result, setResult] = useState<DiscoveryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [faved, setFaved] = useState<Set<number>>(new Set());
+  const [faved, setFaved] = useState<Set<string>>(new Set());
   const [backend, setBackend] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export function DiscoverView() {
     }
   }
 
-  async function favorite(artistId: number) {
+  async function favorite(artistId: string) {
     setFaved((prev) => new Set(prev).add(artistId));
     try {
       await api.addFavorite("artist", String(artistId));

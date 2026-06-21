@@ -112,18 +112,18 @@ class TidalApiGateway:
     def fetch_library_snapshot(self) -> LibrarySnapshot:
         user = self._session.user
         snap = LibrarySnapshot()
-        seen_artists: dict[int, Artist] = {}
-        seen_albums: dict[int, Album] = {}
-        seen_tracks: dict[int, Track] = {}
+        seen_artists: dict[str, Artist] = {}
+        seen_albums: dict[str, Album] = {}
+        seen_tracks: dict[str, Track] = {}
 
         def remember_track(t: Any) -> int:
-            tid = int(t.id)
+            tid = str(t.id)
             artist = _attr(t, "artist")
             album = _attr(t, "album")
-            if artist and int(artist.id) not in seen_artists:
-                seen_artists[int(artist.id)] = _artist(artist)
-            if album and int(album.id) not in seen_albums:
-                seen_albums[int(album.id)] = _album(album)
+            if artist and str(artist.id) not in seen_artists:
+                seen_artists[str(artist.id)] = _artist(artist)
+            if album and str(album.id) not in seen_albums:
+                seen_albums[str(album.id)] = _album(album)
             seen_tracks[tid] = _track(t)
             return tid
 
@@ -135,11 +135,11 @@ class TidalApiGateway:
         fav = user.favorites
         snap.favorite_track_ids = [remember_track(t) for t in _paginate(lambda l, o: fav.tracks(l, o))]
         for a in _paginate(lambda l, o: fav.artists(l, o)):
-            seen_artists.setdefault(int(a.id), _artist(a))
-            snap.favorite_artist_ids.append(int(a.id))
+            seen_artists.setdefault(str(a.id), _artist(a))
+            snap.favorite_artist_ids.append(str(a.id))
         for al in _paginate(lambda l, o: fav.albums(l, o)):
-            seen_albums.setdefault(int(al.id), _album(al))
-            snap.favorite_album_ids.append(int(al.id))
+            seen_albums.setdefault(str(al.id), _album(al))
+            snap.favorite_album_ids.append(str(al.id))
 
         snap.artists = list(seen_artists.values())
         snap.albums = list(seen_albums.values())
@@ -180,7 +180,7 @@ class TidalApiGateway:
         return bool(fn(item_id))
 
     # ---- RecommendationGateway ----------------------------------------------
-    def similar_artists(self, artist_id: int) -> list[Artist]:
+    def similar_artists(self, artist_id: str) -> list[Artist]:
         artist = self._session.artist(artist_id)
         try:
             return [_artist(a) for a in (artist.get_similar() or [])]
@@ -188,10 +188,10 @@ class TidalApiGateway:
             log.warning("get_similar failed for artist %s: %s", artist_id, e)
             return []
 
-    def artist_top_tracks(self, artist_id: int, limit: int = 1) -> list[int]:
+    def artist_top_tracks(self, artist_id: str, limit: int = 1) -> list[str]:
         try:
             tracks = self._session.artist(artist_id).get_top_tracks(limit=limit)
-            return [int(t.id) for t in (tracks or [])]
+            return [str(t.id) for t in (tracks or [])]
         except Exception as e:
             log.warning("get_top_tracks failed for artist %s: %s", artist_id, e)
             return []
@@ -201,10 +201,10 @@ class TidalApiGateway:
         pl = self._session.user.create_playlist(title, description or "")
         return str(pl.id)
 
-    def add_tracks(self, playlist_id: str, track_ids: list[int]) -> None:
+    def add_tracks(self, playlist_id: str, track_ids: list[str]) -> None:
         self._writable(playlist_id).add([str(t) for t in track_ids])
 
-    def remove_track(self, playlist_id: str, track_id: int) -> None:
+    def remove_track(self, playlist_id: str, track_id: str) -> None:
         self._writable(playlist_id).remove_by_id(str(track_id))
 
     def edit_playlist(self, playlist_id: str, title: str | None, description: str | None) -> None:
@@ -217,20 +217,20 @@ class TidalApiGateway:
         """Re-read a single playlist (+its tracks) into a snapshot for local refresh."""
         pl = self._session.playlist(playlist_id)
         snap = LibrarySnapshot()
-        seen_artists: dict[int, Artist] = {}
-        seen_albums: dict[int, Album] = {}
-        seen_tracks: dict[int, Track] = {}
+        seen_artists: dict[str, Artist] = {}
+        seen_albums: dict[str, Album] = {}
+        seen_tracks: dict[str, Track] = {}
         snap.playlists.append(_playlist(pl))
-        ids: list[int] = []
+        ids: list[str] = []
         for t in _paginate(lambda l, o, _p=pl: _p.tracks(l, o)):
             artist = _attr(t, "artist")
             album = _attr(t, "album")
-            if artist and int(artist.id) not in seen_artists:
-                seen_artists[int(artist.id)] = _artist(artist)
-            if album and int(album.id) not in seen_albums:
-                seen_albums[int(album.id)] = _album(album)
-            seen_tracks[int(t.id)] = _track(t)
-            ids.append(int(t.id))
+            if artist and str(artist.id) not in seen_artists:
+                seen_artists[str(artist.id)] = _artist(artist)
+            if album and str(album.id) not in seen_albums:
+                seen_albums[str(album.id)] = _album(album)
+            seen_tracks[str(t.id)] = _track(t)
+            ids.append(str(t.id))
         snap.playlist_tracks[str(pl.id)] = ids
         snap.artists = list(seen_artists.values())
         snap.albums = list(seen_albums.values())
@@ -282,15 +282,15 @@ def _paginate(fetch: Callable[[int, int], list]) -> list:
 
 
 def _artist(a: Any) -> Artist:
-    return Artist(id=int(a.id), name=_attr(a, "name", default=""), picture=_attr(a, "picture"))
+    return Artist(id=str(a.id), name=_attr(a, "name", default=""), picture=_attr(a, "picture"))
 
 
 def _album(al: Any) -> Album:
     artist = _attr(al, "artist")
     return Album(
-        id=int(al.id),
+        id=str(al.id),
         title=_attr(al, "name", "title", default=""),
-        artist_id=int(artist.id) if artist else None,
+        artist_id=str(artist.id) if artist else None,
         artist_name=_attr(artist, "name") if artist else None,
         cover=_attr(al, "cover"),
         num_tracks=_attr(al, "num_tracks"),
@@ -302,12 +302,12 @@ def _track(t: Any) -> Track:
     artist = _attr(t, "artist")
     album = _attr(t, "album")
     return Track(
-        id=int(t.id),
+        id=str(t.id),
         title=_attr(t, "name", "title", default=""),
         duration=_attr(t, "duration"),
-        artist_id=int(artist.id) if artist else None,
+        artist_id=str(artist.id) if artist else None,
         artist_name=_attr(artist, "name") if artist else None,
-        album_id=int(album.id) if album else None,
+        album_id=str(album.id) if album else None,
         album_title=_attr(album, "name", "title") if album else None,
         isrc=_attr(t, "isrc"),
     )

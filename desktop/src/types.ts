@@ -35,24 +35,24 @@ export interface Playlist {
 }
 
 export interface Track {
-  id: number;
+  id: string;
   title: string;
   duration: number | null;
-  artist_id: number | null;
+  artist_id: string | null;
   artist_name: string | null;
-  album_id: number | null;
+  album_id: string | null;
   album_title: string | null;
   isrc: string | null;
 }
 
 export interface Artist {
-  id: number;
+  id: string;
   name: string;
   picture: string | null;
 }
 
 export interface Album {
-  id: number;
+  id: string;
   title: string;
   artist_name: string | null;
   num_tracks: number | null;
@@ -61,6 +61,12 @@ export interface Album {
 
 export type FavoriteType = "track" | "artist" | "album";
 
+export interface ProviderInfo {
+  provider: string;
+  active: boolean;
+  connected: boolean;
+}
+
 export interface SearchResults {
   artists: Artist[];
   albums: Album[];
@@ -68,7 +74,7 @@ export interface SearchResults {
 }
 
 export interface Recommendation {
-  artist_id: number;
+  artist_id: string;
   name: string;
   reason: string;
   score: number;

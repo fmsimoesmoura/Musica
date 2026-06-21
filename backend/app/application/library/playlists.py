@@ -29,12 +29,12 @@ class ManagePlaylists:
         self._refresh(playlist_id)
         return playlist_id
 
-    def add_tracks(self, playlist_id: str, track_ids: list[int]) -> None:
+    def add_tracks(self, playlist_id: str, track_ids: list[str]) -> None:
         if track_ids:
             self._writer.add_tracks(playlist_id, track_ids)
             self._refresh(playlist_id)
 
-    def remove_track(self, playlist_id: str, track_id: int) -> None:
+    def remove_track(self, playlist_id: str, track_id: str) -> None:
         self._writer.remove_track(playlist_id, track_id)
         self._refresh(playlist_id)
 

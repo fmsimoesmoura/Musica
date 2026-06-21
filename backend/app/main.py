@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .composition import container
 from .config import DEFAULT_PORT
 from .infrastructure.persistence.db import init_db
-from .interface.http.routers import auth, catalog, discovery, lib
+from .interface.http.routers import auth, catalog, discovery, lib, providers
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("main")
@@ -23,12 +23,12 @@ log = logging.getLogger("main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
-    c = container()
+    c = container()  # builds the active provider's container (creates its DB)
+    init_db(c.provider)
     if c.restore_session():
-        log.info("Restored Tidal session for %s", c.get_status().user_name)
+        log.info("Restored %s session for %s", c.provider, c.get_status().user_name)
     else:
-        log.info("No stored Tidal session; awaiting login.")
+        log.info("No stored %s session; awaiting login.", c.provider)
     yield
 
 
@@ -46,6 +46,7 @@ app.include_router(auth)
 app.include_router(lib)
 app.include_router(catalog)
 app.include_router(discovery)
+app.include_router(providers)
 
 
 @app.get("/health")

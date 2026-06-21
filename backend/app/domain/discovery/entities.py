@@ -15,7 +15,7 @@ class TasteProfile:
 class Candidate:
     """A new artist surfaced by the recommendation engine, not yet in the library."""
 
-    artist_id: int
+    artist_id: str
     name: str
     # How many seed artists this candidate was 'similar to' — a fit-strength signal.
     score: int = 1
@@ -23,7 +23,7 @@ class Candidate:
 
 @dataclass
 class Recommendation:
-    artist_id: int
+    artist_id: str
     name: str
     reason: str
     score: int = 1

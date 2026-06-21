@@ -10,10 +10,10 @@ from .entities import Candidate, Recommendation, TasteProfile
 class RecommendationGateway(Protocol):
     """Surfaces candidate artists from the music service (Tidal radio/similar)."""
 
-    def similar_artists(self, artist_id: int) -> list[Artist]:
+    def similar_artists(self, artist_id: str) -> list[Artist]:
         ...
 
-    def artist_top_tracks(self, artist_id: int, limit: int = 1) -> list[int]:
+    def artist_top_tracks(self, artist_id: str, limit: int = 1) -> list[str]:
         """Top track ids for an artist — used to seed a playlist from picks."""
         ...
 

@@ -10,16 +10,16 @@ from sqlmodel import Field, SQLModel
 
 class ArtistRow(SQLModel, table=True):
     __tablename__ = "artist"
-    id: int = Field(primary_key=True)
+    id: str = Field(primary_key=True)
     name: str
     picture: Optional[str] = None
 
 
 class AlbumRow(SQLModel, table=True):
     __tablename__ = "album"
-    id: int = Field(primary_key=True)
+    id: str = Field(primary_key=True)
     title: str
-    artist_id: Optional[int] = None
+    artist_id: Optional[str] = None
     artist_name: Optional[str] = None
     cover: Optional[str] = None
     num_tracks: Optional[int] = None
@@ -28,12 +28,12 @@ class AlbumRow(SQLModel, table=True):
 
 class TrackRow(SQLModel, table=True):
     __tablename__ = "track"
-    id: int = Field(primary_key=True)
+    id: str = Field(primary_key=True)
     title: str
     duration: Optional[int] = None
-    artist_id: Optional[int] = None
+    artist_id: Optional[str] = None
     artist_name: Optional[str] = None
-    album_id: Optional[int] = None
+    album_id: Optional[str] = None
     album_title: Optional[str] = None
     isrc: Optional[str] = None
 
@@ -53,7 +53,7 @@ class PlaylistTrackRow(SQLModel, table=True):
     __tablename__ = "playlist_track"
     playlist_id: str = Field(primary_key=True)
     position: int = Field(primary_key=True)
-    track_id: int
+    track_id: str
 
 
 class FavoriteRow(SQLModel, table=True):

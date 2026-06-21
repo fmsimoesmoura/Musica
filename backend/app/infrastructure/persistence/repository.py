@@ -14,7 +14,7 @@ from ...domain.library.entities import (
     Playlist,
     Track,
 )
-from .db import engine
+from .db import engine_for
 from .tables import (
     AlbumRow,
     ArtistRow,
@@ -26,9 +26,14 @@ from .tables import (
 
 
 class SqliteLibraryRepository:
+    """Bound to one provider's SQLite file (library-<provider>.db)."""
+
+    def __init__(self, provider: str):
+        self._engine = engine_for(provider)
+
     # ---- write ----
     def save_snapshot(self, snapshot: LibrarySnapshot) -> None:
-        with Session(engine) as session:
+        with Session(self._engine) as session:
             for a in snapshot.artists:
                 session.merge(_artist_row(a))
             for al in snapshot.albums:
@@ -61,11 +66,11 @@ class SqliteLibraryRepository:
 
     # ---- read ----
     def list_playlists(self) -> list[Playlist]:
-        with Session(engine) as session:
+        with Session(self._engine) as session:
             return [_playlist_entity(r) for r in session.exec(select(PlaylistRow)).all()]
 
     def list_playlist_tracks(self, playlist_id: str) -> list[Track]:
-        with Session(engine) as session:
+        with Session(self._engine) as session:
             pts = session.exec(
                 select(PlaylistTrackRow)
                 .where(PlaylistTrackRow.playlist_id == playlist_id)
@@ -87,13 +92,13 @@ class SqliteLibraryRepository:
     def list_favorite_albums(self) -> list[Album]:
         return self._favorites(AlbumRow, "album", _album_entity)
 
-    def all_artist_ids(self) -> set[int]:
-        with Session(engine) as session:
+    def all_artist_ids(self) -> set[str]:
+        with Session(self._engine) as session:
             return set(session.exec(select(ArtistRow.id)).all())
 
     def save_playlist_snapshot(self, snapshot: LibrarySnapshot) -> None:
         # Partial upsert: only the playlists in the snapshot; favorites untouched.
-        with Session(engine) as session:
+        with Session(self._engine) as session:
             for a in snapshot.artists:
                 session.merge(_artist_row(a))
             for al in snapshot.albums:
@@ -112,7 +117,7 @@ class SqliteLibraryRepository:
             session.commit()
 
     def delete_playlist(self, playlist_id: str) -> None:
-        with Session(engine) as session:
+        with Session(self._engine) as session:
             for pt in session.exec(
                 select(PlaylistTrackRow).where(PlaylistTrackRow.playlist_id == playlist_id)
             ).all():
@@ -123,13 +128,13 @@ class SqliteLibraryRepository:
             session.commit()
 
     def _favorites(self, row_model, item_type: str, to_entity):
-        with Session(engine) as session:
+        with Session(self._engine) as session:
             favs = session.exec(
                 select(FavoriteRow).where(FavoriteRow.item_type == item_type)
             ).all()
             out = []
             for f in favs:
-                row = session.get(row_model, int(f.item_id))
+                row = session.get(row_model, f.item_id)
                 if row:
                     out.append(to_entity(row))
             return out

@@ -21,7 +21,7 @@ PICKS_SCHEMA = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "artist_id": {"type": "integer"},
+                    "artist_id": {"type": "string"},
                     "name": {"type": "string"},
                     "reason": {"type": "string"},
                 },
@@ -43,7 +43,7 @@ def build_user_prompt(profile: TasteProfile, candidates: list[Candidate], limit:
         f"The listener loves these artists:\n{seeds}\n\n"
         f"Candidate artists to choose from:\n{candidate_lines}\n\n"
         f"Pick up to {limit} candidates, ranked best-fit first. "
-        f"Respond as JSON: {{\"picks\": [{{\"artist_id\": int, \"name\": str, \"reason\": str}}]}}."
+        f"Respond as JSON: {{\"picks\": [{{\"artist_id\": str, \"name\": str, \"reason\": str}}]}}."
     )
 
 
@@ -52,11 +52,10 @@ def picks_to_recommendations(picks: list[dict], candidates: list[Candidate]) -> 
     by_id = {c.artist_id: c for c in candidates}
     out: list[Recommendation] = []
     for pick in picks:
-        try:
-            aid = int(pick.get("artist_id"))
-        except (TypeError, ValueError):
+        aid = pick.get("artist_id")
+        if aid is None:
             continue
-        candidate = by_id.get(aid)
+        candidate = by_id.get(str(aid))
         if candidate is None:
             continue
         reason = str(pick.get("reason") or "").strip()

@@ -1,7 +1,6 @@
-"""KeyringTokenStore — implements the TokenStore port via the OS keychain.
-
-Falls back to a 0600 file if no keyring backend is available (e.g. headless).
-Translates between the OAuthTokens domain entity and a JSON payload.
+"""KeyringTokenStore — implements the TokenStore port via the OS keychain,
+namespaced per provider. Falls back to a 0600 file if no keyring backend is
+available (e.g. headless). Translates between OAuthTokens and a JSON payload.
 """
 from __future__ import annotations
 
@@ -13,13 +12,19 @@ from typing import Optional
 import keyring
 from keyring.errors import KeyringError, PasswordDeleteError
 
-from ...config import KEYRING_SERVICE, KEYRING_USER, app_data_dir
+from ...config import KEYRING_SERVICE, app_data_dir, keyring_user_for
 from ...domain.auth.entities import OAuthTokens
-
-_FALLBACK_PATH = app_data_dir() / "session.json"
 
 
 class KeyringTokenStore:
+    def __init__(self, provider: str):
+        self._provider = provider
+        self._user = keyring_user_for(provider)
+        self._fallback = app_data_dir() / f"session-{provider}.json"
+        # Pre-namespacing key (Tidal-only), for one-time back-compat on load.
+        self._legacy_user = "oauth-session" if provider == "tidal" else None
+        self._legacy_fallback = app_data_dir() / "session.json"
+
     def save(self, tokens: OAuthTokens) -> None:
         payload = json.dumps(
             {
@@ -30,21 +35,29 @@ class KeyringTokenStore:
             }
         )
         try:
-            keyring.set_password(KEYRING_SERVICE, KEYRING_USER, payload)
+            keyring.set_password(KEYRING_SERVICE, self._user, payload)
             return
         except KeyringError:
             pass
-        _FALLBACK_PATH.write_text(payload)
-        os.chmod(_FALLBACK_PATH, 0o600)
+        self._fallback.write_text(payload)
+        os.chmod(self._fallback, 0o600)
 
     def load(self) -> Optional[OAuthTokens]:
         payload: Optional[str] = None
         try:
-            payload = keyring.get_password(KEYRING_SERVICE, KEYRING_USER)
+            payload = keyring.get_password(KEYRING_SERVICE, self._user)
         except KeyringError:
             payload = None
-        if payload is None and _FALLBACK_PATH.exists():
-            payload = _FALLBACK_PATH.read_text()
+        if payload is None and self._fallback.exists():
+            payload = self._fallback.read_text()
+        # Back-compat: migrate the pre-namespacing Tidal session if present.
+        if payload is None and self._legacy_user:
+            try:
+                payload = keyring.get_password(KEYRING_SERVICE, self._legacy_user)
+            except KeyringError:
+                payload = None
+            if payload is None and self._legacy_fallback.exists():
+                payload = self._legacy_fallback.read_text()
         if not payload:
             return None
         data = json.loads(payload)
@@ -58,8 +71,8 @@ class KeyringTokenStore:
 
     def clear(self) -> None:
         try:
-            keyring.delete_password(KEYRING_SERVICE, KEYRING_USER)
+            keyring.delete_password(KEYRING_SERVICE, self._user)
         except (KeyringError, PasswordDeleteError):
             pass
-        if _FALLBACK_PATH.exists():
-            _FALLBACK_PATH.unlink()
+        if self._fallback.exists():
+            self._fallback.unlink()

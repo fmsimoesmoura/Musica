@@ -4,9 +4,10 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-from ...composition import container
+from ...composition import container, list_providers, switch_provider
 from .dto import to_list
 
 
@@ -21,23 +22,45 @@ class EditPlaylistBody(BaseModel):
 
 
 class AddTracksBody(BaseModel):
-    track_ids: list[int]
+    track_ids: list[str]
 
 
 class SaveDiscoveryBody(BaseModel):
     name: str
-    artist_ids: list[int]
+    artist_ids: list[str]
     tracks_per_artist: int = 1
+
+
+class ActiveProviderBody(BaseModel):
+    provider: str
 
 auth = APIRouter(prefix="/auth", tags=["auth"])
 lib = APIRouter(tags=["library"])
 catalog = APIRouter(tags=["catalog"])
 discovery = APIRouter(tags=["discovery"])
+providers = APIRouter(tags=["providers"])
+
+
+@providers.get("/providers")
+def get_providers():
+    return list_providers()
+
+
+@providers.post("/providers/active")
+def set_provider(body: ActiveProviderBody):
+    try:
+        switch_provider(body.provider)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"active": body.provider}
 
 
 @auth.post("/start")
 def auth_start():
-    return asdict(container().connect.start())
+    try:
+        return asdict(container().connect.start())
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @auth.get("/poll")
@@ -59,6 +82,18 @@ def auth_status():
 def auth_logout():
     container().logout()
     return {"connected": False}
+
+
+@auth.get("/spotify/callback", response_class=HTMLResponse)
+def spotify_callback(code: str = Query(None), state: str = Query(None), error: str = Query(None)):
+    """Spotify Authorization-Code redirect target. Hands the code to the gateway."""
+    gw = container().auth
+    handler = getattr(gw, "handle_callback", None)
+    if handler is None:
+        raise HTTPException(status_code=400, detail="Active provider is not Spotify")
+    ok = handler(code=code, state=state, error=error)
+    msg = "Spotify connected — you can close this tab." if ok else f"Login failed: {error or 'unknown error'}"
+    return f"<html><body style='font-family:sans-serif;padding:2rem'>{msg}</body></html>"
 
 
 def _require_connection() -> None:
@@ -119,7 +154,7 @@ def add_tracks(playlist_id: str, body: AddTracksBody):
 
 
 @lib.delete("/playlists/{playlist_id}/tracks/{track_id}")
-def remove_track(playlist_id: str, track_id: int):
+def remove_track(playlist_id: str, track_id: str):
     _require_connection()
     container().manage_playlists.remove_track(playlist_id, track_id)
     return {"ok": True}

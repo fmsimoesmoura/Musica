@@ -29,6 +29,8 @@ class GenerateRecommendations:
         self._curator = curator
 
     def __call__(self, max_recommendations: int = 12, seed_count: int = _DEFAULT_SEEDS) -> DiscoveryResult:
+        if self._gateway is None:
+            return DiscoveryResult(note="Discovery isn't available for this provider.")
         favorites = self._repository.list_favorite_artists()
         if not favorites:
             return DiscoveryResult(
@@ -39,7 +41,7 @@ class GenerateRecommendations:
         seeds = favorites[:seed_count]
 
         # Aggregate similar artists across seeds; frequency = fit strength.
-        candidates: dict[int, Candidate] = {}
+        candidates: dict[str, Candidate] = {}
         for seed in seeds:
             try:
                 similar = self._gateway.similar_artists(seed.id)
@@ -47,7 +49,7 @@ class GenerateRecommendations:
                 log.warning("similar_artists failed for %s: %s", seed.name, e)
                 continue
             for artist in similar:
-                aid = int(artist.id)
+                aid = artist.id
                 if aid in known:
                     continue
                 if aid in candidates:

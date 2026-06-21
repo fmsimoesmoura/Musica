@@ -22,10 +22,10 @@ class PlaylistWriter(Protocol):
     def create_playlist(self, title: str, description: str = "") -> str:
         """Create a playlist; returns its new id."""
 
-    def add_tracks(self, playlist_id: str, track_ids: list[int]) -> None:
+    def add_tracks(self, playlist_id: str, track_ids: list[str]) -> None:
         ...
 
-    def remove_track(self, playlist_id: str, track_id: int) -> None:
+    def remove_track(self, playlist_id: str, track_id: str) -> None:
         ...
 
     def edit_playlist(self, playlist_id: str, title: str | None, description: str | None) -> None:
@@ -66,7 +66,7 @@ class LibraryRepository(Protocol):
     def list_favorite_albums(self) -> list[Album]:
         ...
 
-    def all_artist_ids(self) -> set[int]:
+    def all_artist_ids(self) -> set[str]:
         """Every artist id present in the imported library (favorites + playlists).
 
         Used by discovery to filter out artists the user already knows.

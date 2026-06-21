@@ -1,11 +1,14 @@
 # Tidal Manager
 
-**v0.2.0 · macOS + Windows**
+**v0.3.0 · macOS + Windows · Tidal + Spotify**
 
-A personal desktop app to manage your Tidal playlists, search the catalog, and
-discover new artists that fit your taste (Tidal radio + AI curation). Built with a
-Python sidecar + a Tauri/React desktop shell; ships for **macOS (Apple Silicon)**
-and **Windows (x64)**.
+A personal desktop app to manage your music — across **Tidal** and **Spotify**
+(Qobuz planned) — search each catalog, and discover new artists that fit your taste
+(streaming "similar artists" + AI curation). Built with a Python sidecar + a
+Tauri/React desktop shell; ships for **macOS (Apple Silicon)** and **Windows (x64)**.
+
+Switch services with the provider toggle in the title bar; each keeps its own
+imported library and login.
 
 > **Note on the Tidal API.** This app uses [`tidalapi`](https://github.com/EbbLabs/python-tidal),
 > the actively maintained *unofficial* Python library, because it supports full
@@ -14,6 +17,40 @@ and **Windows (x64)**.
 > API, so it is technically outside Tidal's ToS and can break when Tidal changes
 > things. Fine for personal use; the dependency is isolated to a single adapter
 > (`backend/app/infrastructure/tidal/gateway.py`) so it can be swapped.
+
+## Connectors
+
+Each music service is a set of adapters behind shared ports
+(`AuthGateway`, `CatalogGateway`, `FavoritesGateway`, `PlaylistWriter`,
+`RecommendationGateway`). The active provider is chosen in the title bar; libraries
+are isolated per provider (`library-<provider>.db`) with per-provider logins.
+
+| Provider | Auth | Import | Search | Favorites | Playlists | Discovery |
+|---|---|---|---|---|---|---|
+| **Tidal** | device/link | ✅ | ✅ | ✅ | ✅ | Tidal similar-artists |
+| **Spotify** | OAuth PKCE | ✅ | ✅ | ✅ | ✅ | **Last.fm** similar-artists¹ |
+| **Qobuz** | _planned_ | – | – | – | – | – |
+
+¹ Spotify deprecated its `related-artists`/`recommendations` endpoints for new
+apps, so Spotify discovery uses Last.fm's free `artist.getSimilar` for candidates,
+then the same curator (Ollama/Claude/none) ranks them. Spotify's own
+artist-top-tracks (used by "save discovery as playlist") still works.
+
+### Spotify setup (one-time)
+
+1. Create an app at the [Spotify developer dashboard](https://developer.spotify.com/dashboard)
+   (no client secret needed — the app uses PKCE).
+2. Add this exact **redirect URI** to the app:
+   `http://127.0.0.1:8765/auth/spotify/callback`
+3. Put the app's **Client ID** and a free [Last.fm API key](https://www.last.fm/api/account/create)
+   in `backend/.env`:
+   ```
+   SPOTIFY_CLIENT_ID=your_client_id
+   LASTFM_API_KEY=your_lastfm_key
+   ```
+4. In the app, switch the provider toggle to **Spotify** → **Connect Spotify** →
+   approve in the browser. (New Spotify apps are "development mode": the owner needs
+   Premium and ~25 users max — fine for personal use.)
 
 ## Download & install
 
@@ -243,6 +280,9 @@ code-signing certificate.
 | Method | Path | Purpose | Behavior notes |
 |---|---|---|---|
 | GET | `/health` | readiness check | returns `{ok:true}`; used by the shell/UI to wait for the sidecar |
+| GET | `/providers` | list providers | `[{provider, active, connected}]` |
+| POST | `/providers/active` | switch active provider | `{provider}`; restores that provider's session |
+| GET | `/auth/spotify/callback` | Spotify OAuth redirect target | exchanges the code; closes the loop |
 | POST | `/auth/start` | begin device/link login | returns `{login_id, verification_uri, user_code, expires_in}` |
 | GET | `/auth/poll?login_id=` | poll login status | `status`: `pending`/`authorized`/`expired`/`unknown`; persists tokens on success |
 | GET | `/auth/status` | connection state | `{connected, user_name}` |
@@ -282,5 +322,8 @@ keyring backend is available.
   Tauri `externalBin`).
 - **Cross-platform (v0.2.0)** ✅ macOS `.dmg` + Windows `.msi`/`.exe`, built on CI.
   Code-signing/notarization remains optional (needs paid certs).
+- **Connectors (v0.3.0)** ✅ multi-provider foundation + **Spotify** (OAuth PKCE,
+  import/search/favorites/playlists, Last.fm-powered discovery). **Qobuz** is the
+  next connector (reuses the same scaffolding).
 
 Progress is tracked in GitHub issues (#4 is the roadmap).

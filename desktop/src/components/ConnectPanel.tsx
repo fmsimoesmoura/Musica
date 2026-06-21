@@ -3,7 +3,13 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { api } from "../api";
 import type { LinkLogin } from "../types";
 
-export function ConnectPanel({ onConnected }: { onConnected: (name: string | null) => void }) {
+export function ConnectPanel({
+  onConnected,
+  providerName = "Tidal",
+}: {
+  onConnected: (name: string | null) => void;
+  providerName?: string;
+}) {
   const [login, setLogin] = useState<LinkLogin | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -52,11 +58,11 @@ export function ConnectPanel({ onConnected }: { onConnected: (name: string | nul
     <div className="center">
       <div className="card">
         <h1>Tidal Manager</h1>
-        <p className="muted">Connect your Tidal account to manage playlists and discover music.</p>
+        <p className="muted">Connect your {providerName} account to manage playlists and discover music.</p>
 
         {!login ? (
           <button className="primary" disabled={busy} onClick={start}>
-            {busy ? "Starting…" : "Connect Tidal"}
+            {busy ? "Starting…" : `Connect ${providerName}`}
           </button>
         ) : (
           <div className="login-pending">

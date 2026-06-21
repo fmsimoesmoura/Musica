@@ -11,16 +11,16 @@ from typing import Optional
 
 @dataclass
 class Artist:
-    id: int
+    id: str
     name: str
     picture: Optional[str] = None
 
 
 @dataclass
 class Album:
-    id: int
+    id: str
     title: str
-    artist_id: Optional[int] = None
+    artist_id: Optional[str] = None
     artist_name: Optional[str] = None
     cover: Optional[str] = None
     num_tracks: Optional[int] = None
@@ -29,12 +29,12 @@ class Album:
 
 @dataclass
 class Track:
-    id: int
+    id: str
     title: str
     duration: Optional[int] = None
-    artist_id: Optional[int] = None
+    artist_id: Optional[str] = None
     artist_name: Optional[str] = None
-    album_id: Optional[int] = None
+    album_id: Optional[str] = None
     album_title: Optional[str] = None
     isrc: Optional[str] = None
 
@@ -63,10 +63,10 @@ class LibrarySnapshot:
     tracks: list[Track] = field(default_factory=list)
     playlists: list[Playlist] = field(default_factory=list)
     # playlist id -> ordered list of track ids
-    playlist_tracks: dict[str, list[int]] = field(default_factory=dict)
-    favorite_track_ids: list[int] = field(default_factory=list)
-    favorite_artist_ids: list[int] = field(default_factory=list)
-    favorite_album_ids: list[int] = field(default_factory=list)
+    playlist_tracks: dict[str, list[str]] = field(default_factory=dict)
+    favorite_track_ids: list[str] = field(default_factory=list)
+    favorite_artist_ids: list[str] = field(default_factory=list)
+    favorite_album_ids: list[str] = field(default_factory=list)
 
     def counts(self) -> dict[str, int]:
         return {

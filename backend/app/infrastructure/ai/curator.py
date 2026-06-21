@@ -17,7 +17,7 @@ log = logging.getLogger("infra.ai")
 
 
 class _Pick(BaseModel):
-    artist_id: int
+    artist_id: str
     name: str
     reason: str
 

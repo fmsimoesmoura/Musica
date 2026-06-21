@@ -1,7 +1,11 @@
 # Tidal Manager
 
+**v0.2.0 · macOS + Windows**
+
 A personal desktop app to manage your Tidal playlists, search the catalog, and
-discover new artists that fit your taste (Tidal radio + AI curation).
+discover new artists that fit your taste (Tidal radio + AI curation). Built with a
+Python sidecar + a Tauri/React desktop shell; ships for **macOS (Apple Silicon)**
+and **Windows (x64)**.
 
 > **Note on the Tidal API.** This app uses [`tidalapi`](https://github.com/EbbLabs/python-tidal),
 > the actively maintained *unofficial* Python library, because it supports full
@@ -10,6 +14,53 @@ discover new artists that fit your taste (Tidal radio + AI curation).
 > API, so it is technically outside Tidal's ToS and can break when Tidal changes
 > things. Fine for personal use; the dependency is isolated to a single adapter
 > (`backend/app/infrastructure/tidal/gateway.py`) so it can be swapped.
+
+## Download & install
+
+Installers are built by GitHub Actions (see [Building](#building-installers)).
+**Get them from:** GitHub → **Actions** → latest **build** run → **Artifacts**
+(`tidal-manager-macos`, `tidal-manager-windows`) — or from a tagged **Release**.
+Artifacts download as a `.zip`; unzip to get the installer.
+
+> These are **unsigned** personal builds, so each OS shows a one-time "unverified
+> developer" warning — steps below. Signing/notarization is optional and needs a
+> paid developer certificate.
+
+### macOS (Apple Silicon)
+
+1. Download & unzip `tidal-manager-macos`, giving `Tidal Manager_<version>_aarch64.dmg`.
+2. Open the `.dmg` and drag **Tidal Manager** into **Applications**.
+3. First launch (Gatekeeper): **right-click the app → Open → Open**.
+   (Or once: `xattr -dr com.apple.quarantine "/Applications/Tidal Manager.app"`.)
+4. macOS asks to allow keychain access (enter your **Mac login password**) → click
+   **Always Allow**. That's where your Tidal tokens are stored.
+5. Click **Connect Tidal** → approve in the browser → **Import library**.
+
+*Intel Macs:* no prebuilt binary — [build from source](#building-installers) on an Intel Mac.
+
+### Windows (x64)
+
+1. Download & unzip `tidal-manager-windows`, giving an installer:
+   `Tidal Manager_<version>_x64-setup.exe` (recommended) or `Tidal Manager_<version>_x64_en-US.msi`.
+2. Run it. SmartScreen may warn (unsigned) → **More info → Run anyway**.
+3. If prompted, allow the **WebView2 runtime** to install (Tauri handles it; it's
+   already present on Windows 11).
+4. Launch **Tidal Manager** from the Start menu → **Connect Tidal** → approve in the
+   browser → **Import library**.
+
+*Tokens* are stored in the **Windows Credential Manager** (no extra prompt).
+
+### Optional on both: free local AI discovery
+
+Discover works with **zero setup** (ranks by Tidal similarity). For AI-written
+"why it fits" reasons for free, install [Ollama](https://ollama.com), pull a model,
+and keep it running — the app auto-detects it:
+
+```bash
+ollama pull llama3.1:8b   # then keep `ollama serve` running (brew services start ollama on macOS)
+```
+
+(Or set `ANTHROPIC_API_KEY` to use Claude instead — see [Discover](#discover-hybrid-ai).)
 
 ## Architecture
 
@@ -53,10 +104,11 @@ desktop/
 ### Connect (OAuth)
 Logs you into Tidal using the **device/link flow**: the app asks Tidal for a code,
 opens `link.tidal.com/XXXXX` in your browser, and polls until you approve. On
-success the OAuth tokens (`access`/`refresh`/expiry) are saved to the **macOS
-keychain**. On every launch the app restores that session automatically and
-refreshes the access token if it has expired — so you only log in once.
-*Use case:* `ConnectTidal`, `RestoreSession`. *Log out* clears the keychain entry.
+success the OAuth tokens (`access`/`refresh`/expiry) are saved to the **OS
+credential store** (macOS Keychain / Windows Credential Manager), via `keyring`.
+On every launch the app restores that session automatically and refreshes the
+access token if it has expired — so you only log in once.
+*Use case:* `ConnectTidal`, `RestoreSession`. *Log out* clears the stored tokens.
 
 ### Import library
 Pulls your **owned music** from Tidal into a local SQLite DB so the UI is instant
@@ -140,46 +192,45 @@ To run the backend alone (e.g. for curl testing):
 cd backend && .venv/bin/python -m app.main --port 8765
 ```
 
-## Building a distributable (.app / .dmg)
+## Building installers
+
+The same two commands build a native installer on **whatever OS you run them on**
+(Python 3.12/`uv`, Node, Rust + platform toolchain required):
 
 ```bash
 # 1. Bundle the Python sidecar into a single binary (PyInstaller),
-#    named with the host target triple and placed in src-tauri/binaries/.
+#    named with the host target triple, into src-tauri/binaries/.
 cd backend && uv pip install --python .venv/bin/python pyinstaller && ./build_sidecar.sh
 
 # 2. Build the desktop app — embeds the sidecar via Tauri externalBin.
 cd ../desktop && npm run tauri build
-# → src-tauri/target/release/bundle/macos/Tidal Manager.app
-# → src-tauri/target/release/bundle/dmg/Tidal Manager_0.1.0_aarch64.dmg
 ```
 
-In **release** the Rust shell launches the bundled `tidal-backend` (placed next to
-the app executable); in **dev** it launches the venv Python — so `npm run tauri dev`
-needs no PyInstaller build.
+Outputs:
+- **macOS** → `src-tauri/target/release/bundle/dmg/Tidal Manager_<version>_aarch64.dmg` (+ `.app`)
+- **Windows** → `…/bundle/nsis/Tidal Manager_<version>_x64-setup.exe` and `…/bundle/msi/Tidal Manager_<version>_x64_en-US.msi`
 
-### Windows (and CI) builds
+In **release** the Rust shell launches the bundled sidecar (`tidal-backend` /
+`tidal-backend.exe`, placed next to the app executable); in **dev** it launches the
+venv Python — so `npm run tauri dev` needs no PyInstaller build.
 
-You can't cross-build a Windows app from macOS — PyInstaller and Tauri's Windows
-bundler/WebView2/MSVC toolchain are all per-OS. So Windows bundles are produced by
-GitHub Actions on a `windows-latest` runner (`.github/workflows/release.yml`),
-which builds the sidecar **and** the app and uploads installers as artifacts.
+### Cross-platform via CI (no second machine needed)
 
-- **Run it:** GitHub → Actions → *build* → **Run workflow** (or push a `v*` tag).
-- **Download:** the run's artifacts — `tidal-manager-windows` (`.msi` + NSIS `.exe`)
-  and `tidal-manager-macos` (`.dmg`).
-- The same workflow validates the macOS build too.
+You **can't** cross-build a Windows app from macOS (or vice-versa) — PyInstaller and
+Tauri's bundler/WebView2/MSVC toolchain are per-OS. So both installers are produced
+by GitHub Actions (`.github/workflows/release.yml`) on `windows-latest` +
+`macos-latest` runners:
 
-To build Windows locally instead, run the same two commands (`build_sidecar.sh`
-then `npm run tauri build`) **on a Windows machine** with Python, Node, Rust, and
-the MSVC build tools installed.
+- **Run it:** GitHub → **Actions** → *build* → **Run workflow** (or push a `v*` tag,
+  e.g. `git tag v0.2.0 && git push origin v0.2.0`).
+- **Download:** the run's artifacts — `tidal-manager-windows` and `tidal-manager-macos`.
 
-**Two notes for the unsigned personal build:**
-- **Gatekeeper:** the app isn't notarized, so first open via right-click → *Open*
-  (or `xattr -dr com.apple.quarantine "Tidal Manager.app"`). Distribution/notarization
-  needs an Apple Developer certificate.
-- **Keychain:** on first launch macOS asks to allow the new binary to read the
-  stored Tidal tokens — click **Always Allow** once. (A proper signing identity
-  avoids re-prompts across rebuilds.)
+### Signing (optional)
+
+Builds are unsigned, hence the one-time OS warnings in
+[Download & install](#download--install). To remove them you need a paid cert:
+**macOS** an Apple Developer ID (sign + notarize); **Windows** an Authenticode
+code-signing certificate.
 
 ### HTTP API (sidecar)
 
@@ -189,7 +240,7 @@ the MSVC build tools installed.
 | POST | `/auth/start` | begin device/link login | returns `{login_id, verification_uri, user_code, expires_in}` |
 | GET | `/auth/poll?login_id=` | poll login status | `status`: `pending`/`authorized`/`expired`/`unknown`; persists tokens on success |
 | GET | `/auth/status` | connection state | `{connected, user_name}` |
-| POST | `/auth/logout` | clear session | wipes keychain tokens, resets the Tidal session |
+| POST | `/auth/logout` | clear session | wipes stored tokens, resets the Tidal session |
 | POST | `/library/import` | import playlists + favorites | idempotent upsert; returns counts |
 | GET | `/playlists` | list imported playlists | local read |
 | GET | `/playlists/{id}/tracks` | tracks in a playlist | local read, ordered |
@@ -208,8 +259,11 @@ the MSVC build tools installed.
 All endpoints except `/health` and the auth routes require an active Tidal
 connection (return `401` otherwise).
 
-Local data lives in `~/Library/Application Support/tidal-manager/library.db`;
-OAuth tokens are stored in the macOS keychain.
+Local data (SQLite `library.db`) lives in the per-user app dir — macOS
+`~/Library/Application Support/tidal-manager/`, Windows `%APPDATA%\tidal-manager\`.
+OAuth tokens are stored in the OS credential store (macOS Keychain / Windows
+Credential Manager), falling back to a `0600` `session.json` in that dir if no
+keyring backend is available.
 
 ## Roadmap
 
@@ -219,7 +273,8 @@ OAuth tokens are stored in the macOS keychain.
   candidates → Claude ranks & explains fit → ♥ picks to your favorites.
 - **M4 — Playlist editing + packaging** ✅ editing (create/rename/delete, add/remove
   tracks, save discovery picks to a playlist) + packaging (PyInstaller sidecar via
-  Tauri `externalBin` → `.app`/`.dmg`; code-signing/notarization optional, needs an
-  Apple Developer cert).
+  Tauri `externalBin`).
+- **Cross-platform (v0.2.0)** ✅ macOS `.dmg` + Windows `.msi`/`.exe`, built on CI.
+  Code-signing/notarization remains optional (needs paid certs).
 
 Progress is tracked in GitHub issues (#4 is the roadmap).

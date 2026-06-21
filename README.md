@@ -18,9 +18,13 @@ and **Windows (x64)**.
 ## Download & install
 
 Installers are built by GitHub Actions (see [Building](#building-installers)).
-**Get them from:** GitHub → **Actions** → latest **build** run → **Artifacts**
-(`tidal-manager-macos`, `tidal-manager-windows`) — or from a tagged **Release**.
-Artifacts download as a `.zip`; unzip to get the installer.
+
+- **Best:** the latest GitHub **[Release](../../releases/latest)** — installers are
+  attached directly (no login, permanent). Published automatically when a `v*` tag
+  is pushed.
+- **Untagged build:** GitHub → **Actions** → latest **build** run → **Artifacts**
+  (`tidal-manager-macos`, `tidal-manager-windows`). These need a GitHub login,
+  download as a `.zip` (unzip to get the installer), and expire after ~90 days.
 
 > These are **unsigned** personal builds, so each OS shows a one-time "unverified
 > developer" warning — steps below. Signing/notarization is optional and needs a
@@ -221,9 +225,11 @@ Tauri's bundler/WebView2/MSVC toolchain are per-OS. So both installers are produ
 by GitHub Actions (`.github/workflows/release.yml`) on `windows-latest` +
 `macos-latest` runners:
 
-- **Run it:** GitHub → **Actions** → *build* → **Run workflow** (or push a `v*` tag,
-  e.g. `git tag v0.2.0 && git push origin v0.2.0`).
-- **Download:** the run's artifacts — `tidal-manager-windows` and `tidal-manager-macos`.
+- **Run it:** GitHub → **Actions** → *build* → **Run workflow** (artifacts only), or
+  push a `v*` tag — e.g. `git tag v0.2.0 && git push origin v0.2.0` — which builds
+  **and publishes a GitHub Release** with the `.dmg`/`.msi`/`.exe` attached.
+- **Download:** the [Release](../../releases/latest) (tagged) or the run's artifacts
+  (`tidal-manager-windows`, `tidal-manager-macos`).
 
 ### Signing (optional)
 

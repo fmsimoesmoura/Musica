@@ -8,6 +8,7 @@ on:
     tags: ["v*"]
 
 jobs:
+  # Reliable runners — these gate the release.
   build:
     strategy:
       fail-fast: false
@@ -17,23 +18,14 @@ jobs:
             name: windows
           - os: macos-latest
             name: macos-arm64
-          - os: macos-13
-            name: macos-intel
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-
-      - name: Install Node
-        uses: actions/setup-node@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
+      - uses: dtolnay/rust-toolchain@stable
       - name: Build Python sidecar (PyInstaller)
         shell: bash
         working-directory: backend
@@ -42,15 +34,12 @@ jobs:
           uv pip install -e .
           uv pip install pyinstaller
           ./build_sidecar.sh
-
       - name: Install frontend deps
         working-directory: desktop
         run: npm install
-
       - name: Build app bundle
         working-directory: desktop
         run: npm run tauri build
-
       - name: Upload bundles
         uses: actions/upload-artifact@v4
         with:
@@ -61,7 +50,41 @@ jobs:
             desktop/src-tauri/target/release/bundle/**/*.msi
             desktop/src-tauri/target/release/bundle/**/*.exe
 
-  # On a v* tag, publish a GitHub Release with all installers attached.
+  # Intel macOS runners queue slowly / are being phased out — best-effort, never
+  # blocks the release. Its .dmg is attached afterward (attach-intel) if it builds.
+  build-intel:
+    runs-on: macos-13
+    continue-on-error: true
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Python sidecar (PyInstaller)
+        shell: bash
+        working-directory: backend
+        run: |
+          uv venv --python 3.12
+          uv pip install -e .
+          uv pip install pyinstaller
+          ./build_sidecar.sh
+      - name: Install frontend deps
+        working-directory: desktop
+        run: npm install
+      - name: Build app bundle
+        working-directory: desktop
+        run: npm run tauri build
+      - name: Upload bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: tidal-manager-macos-intel
+          if-no-files-found: error
+          path: desktop/src-tauri/target/release/bundle/**/*.dmg
+
+  # Publish the release from the reliable builds as soon as they finish.
   release:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
@@ -69,17 +92,31 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download all build artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           path: dist
-
-      - name: Publish release
-        uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          fail_on_unmatched_files: true
+          fail_on_unmatched_files: false
           files: |
             dist/**/*.dmg
             dist/**/*.msi
             dist/**/*.exe
+
+  # Attach the Intel .dmg to the same release if/when it builds (non-blocking).
+  attach-intel:
+    needs: [build-intel, release]
+    if: ${{ always() && needs.build-intel.result == 'success' && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: tidal-manager-macos-intel
+          path: dist-intel
+      - uses: softprops/action-gh-release@v2
+        with:
+          fail_on_unmatched_files: false
+          files: dist-intel/**/*.dmg

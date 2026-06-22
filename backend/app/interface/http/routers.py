@@ -7,7 +7,8 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-from ...composition import container, list_providers, switch_provider
+from ... import config
+from ...composition import container, list_providers, reload_container, switch_provider
 from .dto import to_list
 
 
@@ -44,6 +45,19 @@ lib = APIRouter(tags=["library"])
 catalog = APIRouter(tags=["catalog"])
 discovery = APIRouter(tags=["discovery"])
 providers = APIRouter(tags=["providers"])
+settings = APIRouter(tags=["settings"])
+
+
+@settings.get("/settings")
+def get_settings():
+    return config.settings_view()
+
+
+@settings.put("/settings")
+def put_settings(values: dict):
+    config.update_settings(values)
+    reload_container()  # so new keys/backends take effect immediately
+    return config.settings_view()
 
 
 @providers.get("/providers")

@@ -13,7 +13,7 @@ from typing import Any, Optional
 
 import requests
 
-from ...config import QOBUZ_APP_ID
+from ...config import qobuz_app_id
 from ...domain.auth.entities import ConnectionStatus, LinkLogin, LoginResult, LoginStatus, OAuthTokens
 from ...domain.catalog.entities import CatalogSearchResults
 from ...domain.library.entities import Album, Artist, LibrarySnapshot, Playlist, Track
@@ -38,9 +38,9 @@ class QobuzGateway:
         return LoginResult(status=LoginStatus.UNKNOWN)
 
     def login_with_credentials(self, username: str, password: str) -> bool:
-        if not QOBUZ_APP_ID:
+        if not qobuz_app_id():
             raise RuntimeError(
-                "QOBUZ_APP_ID is not set. Add it to backend/.env (scraped from the Qobuz web player)."
+                "QOBUZ_APP_ID is not set. Add it in Settings (scraped from the Qobuz web player)."
             )
         md5 = hashlib.md5(password.encode()).hexdigest()
         param = "email" if "@" in username else "username"
@@ -212,9 +212,10 @@ class QobuzGateway:
 
     # ---- internals ----------------------------------------------------------
     def _headers(self, auth: bool) -> dict:
-        if not QOBUZ_APP_ID:
+        app_id = qobuz_app_id()
+        if not app_id:
             raise RuntimeError("QOBUZ_APP_ID is not set.")
-        h = {"X-App-Id": QOBUZ_APP_ID}
+        h = {"X-App-Id": app_id}
         if auth and self._token:
             h["X-User-Auth-Token"] = self._token
         return h

@@ -11,7 +11,7 @@ import logging
 
 import requests
 
-from ...config import LASTFM_API_KEY
+from ...config import lastfm_api_key
 from ...domain.library.entities import Artist
 
 log = logging.getLogger("infra.lastfm")
@@ -26,7 +26,7 @@ class LastfmRecommendationGateway:
         self._cat = catalog_gateway
 
     def similar_artists(self, artist_id: str) -> list[Artist]:
-        if not LASTFM_API_KEY:
+        if not lastfm_api_key():
             raise RuntimeError(
                 "LASTFM_API_KEY is not set. Get a free key at last.fm/api and add it to backend/.env."
             )
@@ -39,7 +39,7 @@ class LastfmRecommendationGateway:
                 params={
                     "method": "artist.getsimilar",
                     "artist": name,
-                    "api_key": LASTFM_API_KEY,
+                    "api_key": lastfm_api_key(),
                     "format": "json",
                     "limit": _SIMILAR_PER_SEED,
                 },

@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .composition import container
 from .config import DEFAULT_PORT
 from .infrastructure.persistence.db import init_db
-from .interface.http.routers import auth, catalog, discovery, lib, providers
+from .interface.http.routers import auth, catalog, discovery, lib, providers, settings
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("main")
@@ -47,6 +47,7 @@ app.include_router(lib)
 app.include_router(catalog)
 app.include_router(discovery)
 app.include_router(providers)
+app.include_router(settings)
 
 
 @app.get("/health")

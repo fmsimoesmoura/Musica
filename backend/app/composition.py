@@ -23,11 +23,11 @@ from .application.library.use_cases import (
     SetFavorite,
 )
 from .config import (
-    ANTHROPIC_API_KEY,
-    CURATOR_BACKEND,
-    OLLAMA_HOST,
     PROVIDERS,
+    anthropic_api_key,
+    curator_backend,
     get_active_provider,
+    ollama_host,
     set_active_provider,
 )
 from .infrastructure.ai.curator import AnthropicCurator
@@ -44,15 +44,15 @@ def _ollama_reachable() -> bool:
     import requests
 
     try:
-        return requests.get(f"{OLLAMA_HOST.rstrip('/')}/api/tags", timeout=0.5).ok
+        return requests.get(f"{ollama_host().rstrip('/')}/api/tags", timeout=0.5).ok
     except requests.exceptions.RequestException:
         return False
 
 
 def _build_curator():
-    backend = CURATOR_BACKEND
+    backend = curator_backend()
     if backend == "auto":
-        if ANTHROPIC_API_KEY:
+        if anthropic_api_key():
             backend = "anthropic"
         elif _ollama_reachable():
             backend = "ollama"
@@ -159,6 +159,16 @@ def switch_provider(provider: str) -> None:
         container().restore_session()
     except Exception as e:
         log.warning("restore after provider switch failed: %s", e)
+
+
+def reload_container() -> None:
+    """Rebuild the active container so changed settings (keys/backends) take effect."""
+    global _active
+    _active = None
+    try:
+        container().restore_session()
+    except Exception as e:
+        log.warning("restore after settings reload failed: %s", e)
 
 
 def list_providers() -> list[dict]:

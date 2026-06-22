@@ -67,6 +67,13 @@ export interface ProviderInfo {
   connected: boolean;
 }
 
+export interface SettingField {
+  secret: boolean;
+  value?: string;
+  configured?: boolean;
+}
+export type SettingsView = Record<string, SettingField>;
+
 export interface SearchResults {
   artists: Artist[];
   albums: Album[];

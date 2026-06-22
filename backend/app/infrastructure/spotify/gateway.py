@@ -18,9 +18,9 @@ from urllib.parse import urlencode
 import requests
 
 from ...config import (
-    SPOTIFY_CLIENT_ID,
-    SPOTIFY_REDIRECT_URI,
     SPOTIFY_SCOPES,
+    spotify_client_id,
+    spotify_redirect_uri,
 )
 from ...domain.auth.entities import (
     ConnectionStatus,
@@ -51,7 +51,7 @@ class SpotifyGateway:
 
     # ---- AuthGateway --------------------------------------------------------
     def start_login(self) -> LinkLogin:
-        if not SPOTIFY_CLIENT_ID:
+        if not spotify_client_id():
             raise RuntimeError(
                 "SPOTIFY_CLIENT_ID is not set. Register a Spotify app and add it to backend/.env."
             )
@@ -65,9 +65,9 @@ class SpotifyGateway:
         self._pending[state] = {"verifier": verifier, "done": False, "error": None}
         url = AUTH_URL + "?" + urlencode(
             {
-                "client_id": SPOTIFY_CLIENT_ID,
+                "client_id": spotify_client_id(),
                 "response_type": "code",
-                "redirect_uri": SPOTIFY_REDIRECT_URI,
+                "redirect_uri": spotify_redirect_uri(),
                 "scope": SPOTIFY_SCOPES,
                 "code_challenge_method": "S256",
                 "code_challenge": challenge,
@@ -90,8 +90,8 @@ class SpotifyGateway:
                 data={
                     "grant_type": "authorization_code",
                     "code": code,
-                    "redirect_uri": SPOTIFY_REDIRECT_URI,
-                    "client_id": SPOTIFY_CLIENT_ID,
+                    "redirect_uri": spotify_redirect_uri(),
+                    "client_id": spotify_client_id(),
                     "code_verifier": pending["verifier"],
                 },
                 timeout=15,
@@ -312,7 +312,7 @@ class SpotifyGateway:
             data={
                 "grant_type": "refresh_token",
                 "refresh_token": self._refresh,
-                "client_id": SPOTIFY_CLIENT_ID,
+                "client_id": spotify_client_id(),
             },
             timeout=15,
         )

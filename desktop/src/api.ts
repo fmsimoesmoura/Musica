@@ -10,6 +10,7 @@ import type {
   PollResult,
   ProviderInfo,
   SearchResults,
+  SettingsView,
   Track,
 } from "./types";
 
@@ -64,6 +65,14 @@ export const api = {
   discover: (limit = 12) =>
     req<DiscoveryResult>(`/discover?limit=${limit}`, { method: "POST" }),
   discoverBackend: () => req<{ backend: string }>("/discover/backend"),
+  getSettings: () => req<SettingsView>("/settings"),
+  putSettings: (values: Record<string, string>) =>
+    req<SettingsView>("/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    }),
+
   providers: () => req<ProviderInfo[]>("/providers"),
   setProvider: (provider: string) =>
     req<{ active: string }>("/providers/active", {

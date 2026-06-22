@@ -69,34 +69,105 @@ KEYRING_SERVICE = "tidal-manager"
 def keyring_user_for(provider: str) -> str:
     return f"oauth-session-{provider}"
 
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
-# Claude model used for AI-curated discovery (M3). Override via env if desired.
-DISCOVERY_MODEL = os.environ.get("DISCOVERY_MODEL", "claude-opus-4-8")
+# --- Runtime-editable settings (Settings screen) -------------------------
+# Keys live in a 0600 config.json in the app data dir so the *installed* app can
+# be configured without a .env or rebuild. Resolution order: config.json → env.
+_CONFIG_PATH = app_data_dir() / "config.json"
 
-# Which backend curates discovery recommendations:
-#   auto      -> anthropic if a key is set, else ollama if reachable, else none
-#   anthropic -> Claude via the Anthropic API (needs ANTHROPIC_API_KEY)
-#   ollama    -> a local LLM via Ollama (free, offline)
-#   none      -> no LLM; rank by Tidal similarity score with templated reasons
-CURATOR_BACKEND = os.environ.get("CURATOR_BACKEND", "auto").lower()
-OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.1:8b")
+# Keys the Settings screen manages. `secret` ones are never echoed back to the UI.
+SETTING_KEYS = {
+    "SPOTIFY_CLIENT_ID": {"secret": False},
+    "LASTFM_API_KEY": {"secret": True},
+    "QOBUZ_APP_ID": {"secret": False},
+    "ANTHROPIC_API_KEY": {"secret": True},
+    "CURATOR_BACKEND": {"secret": False},
+    "OLLAMA_HOST": {"secret": False},
+    "OLLAMA_MODEL": {"secret": False},
+    "DISCOVERY_MODEL": {"secret": False},
+    "SPOTIFY_REDIRECT_URI": {"secret": False},
+}
 
-# --- Spotify connector (official Web API; Authorization Code + PKCE) ---
-SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
-SPOTIFY_REDIRECT_URI = os.environ.get(
-    "SPOTIFY_REDIRECT_URI", f"http://127.0.0.1:{DEFAULT_PORT}/auth/spotify/callback"
-)
-# Scopes for library read + playlist/favorite write.
+
+def _load_config() -> dict:
+    try:
+        return json.loads(_CONFIG_PATH.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def get_setting(key: str) -> str | None:
+    """config.json value (if non-empty) else environment variable else None."""
+    val = _load_config().get(key)
+    if val:
+        return val
+    env = os.environ.get(key)
+    return env if env else None
+
+
+def update_settings(values: dict) -> None:
+    cfg = _load_config()
+    for k, v in values.items():
+        if k not in SETTING_KEYS:
+            continue
+        if v is None or v == "":
+            cfg.pop(k, None)  # clearing falls back to env/default
+        else:
+            cfg[k] = v
+    _CONFIG_PATH.write_text(json.dumps(cfg, indent=2))
+    os.chmod(_CONFIG_PATH, 0o600)
+
+
+def settings_view() -> dict:
+    """For the UI: non-secret values verbatim; secrets only as configured?-booleans."""
+    out = {}
+    for key, meta in SETTING_KEYS.items():
+        if meta["secret"]:
+            out[key] = {"secret": True, "configured": get_setting(key) is not None}
+        else:
+            out[key] = {"secret": False, "value": get_setting(key) or ""}
+    return out
+
+
+# Getters used across the app (always current).
+def anthropic_api_key() -> str | None:
+    return get_setting("ANTHROPIC_API_KEY")
+
+
+def discovery_model() -> str:
+    return get_setting("DISCOVERY_MODEL") or "claude-opus-4-8"
+
+
+def curator_backend() -> str:
+    return (get_setting("CURATOR_BACKEND") or "auto").lower()
+
+
+def ollama_host() -> str:
+    return get_setting("OLLAMA_HOST") or "http://localhost:11434"
+
+
+def ollama_model() -> str:
+    return get_setting("OLLAMA_MODEL") or "llama3.1:8b"
+
+
+def spotify_client_id() -> str | None:
+    return get_setting("SPOTIFY_CLIENT_ID")
+
+
+def spotify_redirect_uri() -> str:
+    return get_setting("SPOTIFY_REDIRECT_URI") or f"http://127.0.0.1:{DEFAULT_PORT}/auth/spotify/callback"
+
+
+def lastfm_api_key() -> str | None:
+    return get_setting("LASTFM_API_KEY")
+
+
+def qobuz_app_id() -> str | None:
+    return get_setting("QOBUZ_APP_ID")
+
+
+# Static (not user-editable): Spotify OAuth scopes.
 SPOTIFY_SCOPES = (
     "user-library-read user-library-modify "
     "playlist-read-private playlist-modify-private playlist-modify-public "
     "user-follow-read user-follow-modify"
 )
-
-# --- Last.fm (free) — similar-artists source for Spotify/Qobuz discovery ---
-LASTFM_API_KEY = os.environ.get("LASTFM_API_KEY")
-
-# --- Qobuz connector (unofficial API; email/password login) ---
-# app_id is scraped from the Qobuz web player bundle or requested from Qobuz.
-QOBUZ_APP_ID = os.environ.get("QOBUZ_APP_ID")

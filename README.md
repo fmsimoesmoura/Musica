@@ -18,6 +18,14 @@ imported library and login.
 > things. Fine for personal use; the dependency is isolated to a single adapter
 > (`backend/app/infrastructure/tidal/gateway.py`) so it can be swapped.
 
+## Configuring keys (Settings ⚙)
+
+Tidal needs no keys. For **Spotify**, **Qobuz**, or **Claude** discovery, open the
+in-app **Settings** (⚙ in the title bar) and paste the relevant keys — they're saved
+locally (`config.json`, `chmod 600`) so the **installed app needs no `.env` or
+rebuild**. (Devs can still use `backend/.env`; both work, app settings win.) This is
+what lets you hand the installer to someone and have them configure it themselves.
+
 ## Connectors
 
 Each music service is a set of adapters behind shared ports
@@ -86,17 +94,16 @@ Installers are built by GitHub Actions (see [Building](#building-installers)).
 > developer" warning — steps below. Signing/notarization is optional and needs a
 > paid developer certificate.
 
-### macOS (Apple Silicon)
+### macOS (Apple Silicon **or** Intel)
 
-1. Download & unzip `tidal-manager-macos`, giving `Tidal Manager_<version>_aarch64.dmg`.
+1. Download & unzip the macOS artifact — `tidal-manager-macos-arm64` (Apple Silicon)
+   or `tidal-manager-macos-intel` (Intel) — giving `Tidal Manager_<version>_*.dmg`.
 2. Open the `.dmg` and drag **Tidal Manager** into **Applications**.
 3. First launch (Gatekeeper): **right-click the app → Open → Open**.
    (Or once: `xattr -dr com.apple.quarantine "/Applications/Tidal Manager.app"`.)
 4. macOS asks to allow keychain access (enter your **Mac login password**) → click
-   **Always Allow**. That's where your Tidal tokens are stored.
+   **Always Allow**. That's where your tokens are stored.
 5. Click **Connect Tidal** → approve in the browser → **Import library**.
-
-*Intel Macs:* no prebuilt binary — [build from source](#building-installers) on an Intel Mac.
 
 ### Windows (x64)
 

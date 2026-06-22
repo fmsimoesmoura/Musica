@@ -4,6 +4,7 @@ import { ConnectPanel } from "./components/ConnectPanel";
 import { LibraryView } from "./components/LibraryView";
 import { SearchView } from "./components/SearchView";
 import { DiscoverView } from "./components/DiscoverView";
+import { SettingsPanel } from "./components/SettingsPanel";
 import type { ProviderInfo } from "./types";
 import "./App.css";
 
@@ -24,6 +25,7 @@ export default function App() {
   const [view, setView] = useState<View>("library");
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [active, setActive] = useState<string>("tidal");
+  const [showSettings, setShowSettings] = useState(false);
 
   async function checkStatus() {
     try {
@@ -116,6 +118,9 @@ export default function App() {
         </div>
         <div className="appbar-right">
           {phase === "connected" && <span className="muted">{userName}</span>}
+          <button className="ghost" title="Settings" onClick={() => setShowSettings(true)}>
+            ⚙
+          </button>
           {phase === "connected" && (
             <button className="ghost" onClick={logout}>
               Log out
@@ -123,6 +128,8 @@ export default function App() {
           )}
         </div>
       </header>
+
+      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
 
       {phase === "starting" && (
         <div className="center">

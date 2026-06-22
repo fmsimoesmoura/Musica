@@ -9,7 +9,7 @@ import logging
 
 from pydantic import BaseModel
 
-from ...config import ANTHROPIC_API_KEY, DISCOVERY_MODEL
+from ...config import anthropic_api_key, discovery_model
 from ...domain.discovery.entities import Candidate, Recommendation, TasteProfile
 from ._shared import SYSTEM, build_user_prompt, picks_to_recommendations
 
@@ -30,18 +30,18 @@ class AnthropicCurator:
     backend_name = "anthropic"
 
     def __init__(self) -> None:
-        self._model = DISCOVERY_MODEL
+        self._model = discovery_model()
 
     def curate(
         self, profile: TasteProfile, candidates: list[Candidate], limit: int
     ) -> list[Recommendation]:
-        if not ANTHROPIC_API_KEY:
+        if not anthropic_api_key():
             raise RuntimeError(
                 "ANTHROPIC_API_KEY is not set. Add it to backend/.env to enable AI-curated discovery."
             )
         import anthropic
 
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        client = anthropic.Anthropic(api_key=anthropic_api_key())
         try:
             response = client.messages.parse(
                 model=self._model,

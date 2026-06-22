@@ -125,6 +125,40 @@ code {
 .provider-bar .prov.active .dot { background: #04201c; }
 
 .body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Settings modal */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid; place-items: center;
+  z-index: 50;
+}
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 24px;
+  width: 540px;
+  max-height: 84vh;
+  overflow-y: auto;
+}
+.modal-head { display: flex; align-items: center; justify-content: space-between; }
+.modal-head h2 { margin: 0; font-size: 19px; }
+.modal-foot { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 18px; }
+
+.settings-grid { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+.setting { display: flex; flex-direction: column; gap: 4px; }
+.setting-label { font-size: 13px; font-weight: 600; }
+.setting-hint { font-size: 11px; color: var(--muted); }
+.setting input, .setting select {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.setting input:focus, .setting select:focus { outline: none; border-color: var(--accent); }
 .appbar-right { display: flex; align-items: center; gap: 12px; }
 .nav { display: flex; gap: 6px; }
 .nav button { background: transparent; padding: 5px 12px; }

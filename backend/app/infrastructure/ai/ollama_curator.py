@@ -10,7 +10,7 @@ import logging
 
 import requests
 
-from ...config import OLLAMA_HOST, OLLAMA_MODEL
+from ...config import ollama_host, ollama_model
 from ...domain.discovery.entities import Candidate, Recommendation, TasteProfile
 from ._shared import PICKS_SCHEMA, SYSTEM, build_user_prompt, picks_to_recommendations
 
@@ -21,8 +21,8 @@ class OllamaCurator:
     backend_name = "ollama"
 
     def __init__(self) -> None:
-        self._host = OLLAMA_HOST.rstrip("/")
-        self._model = OLLAMA_MODEL
+        self._host = ollama_host().rstrip("/")
+        self._model = ollama_model()
 
     def curate(
         self, profile: TasteProfile, candidates: list[Candidate], limit: int

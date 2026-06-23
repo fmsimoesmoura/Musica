@@ -94,16 +94,18 @@ Installers are built by GitHub Actions (see [Building](#building-installers)).
 > developer" warning — steps below. Signing/notarization is optional and needs a
 > paid developer certificate.
 
-### macOS (Apple Silicon **or** Intel)
+### macOS (Apple Silicon)
 
-1. Download & unzip the macOS artifact — `tidal-manager-macos-arm64` (Apple Silicon)
-   or `tidal-manager-macos-intel` (Intel) — giving `Tidal Manager_<version>_*.dmg`.
+1. Download `Tidal Manager_<version>_aarch64.dmg` from the [latest Release](../../releases/latest).
 2. Open the `.dmg` and drag **Tidal Manager** into **Applications**.
 3. First launch (Gatekeeper): **right-click the app → Open → Open**.
    (Or once: `xattr -dr com.apple.quarantine "/Applications/Tidal Manager.app"`.)
 4. macOS asks to allow keychain access (enter your **Mac login password**) → click
    **Always Allow**. That's where your tokens are stored.
 5. Click **Connect Tidal** → approve in the browser → **Import library**.
+
+*Intel Macs:* no prebuilt installer — GitHub's Intel CI runners are being retired, so
+[build from source](#building-installers) on the Intel Mac (the two build commands).
 
 ### Windows (x64)
 

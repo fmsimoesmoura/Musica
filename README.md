@@ -10,6 +10,9 @@ Tauri/React desktop shell; ships for **macOS (Apple Silicon)** and **Windows (x6
 Switch services with the provider toggle in the title bar; each keeps its own
 imported library and login.
 
+> **Just want to use the app?** See the **[User Guide](docs/USER_GUIDE.md)** —
+> install steps, connecting each service, and how every feature works.
+
 > **Note on the Tidal API.** This app uses [`tidalapi`](https://github.com/EbbLabs/python-tidal),
 > the actively maintained *unofficial* Python library, because it supports full
 > playlist management, favorites, search, and track/artist radio — capabilities

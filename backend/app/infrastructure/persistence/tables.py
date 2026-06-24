@@ -36,6 +36,8 @@ class TrackRow(SQLModel, table=True):
     album_id: Optional[str] = None
     album_title: Optional[str] = None
     isrc: Optional[str] = None
+    image: Optional[str] = None
+    explicit: Optional[bool] = None
 
 
 class PlaylistRow(SQLModel, table=True):

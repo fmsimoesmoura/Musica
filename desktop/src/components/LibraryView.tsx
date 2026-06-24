@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { Thumb } from "./Thumb";
 import type { Artist, ImportSummary, Playlist, Track } from "../types";
 
 type Tab = "playlists" | "artists" | "tracks";
@@ -127,7 +128,10 @@ export function LibraryView() {
                   className={selected?.id === p.id ? "row selected" : "row"}
                   onClick={() => openPlaylist(p)}
                 >
-                  <span className="title">{p.title || "(untitled)"}</span>
+                  <div className="row-main">
+                    <Thumb src={p.picture} alt={p.title} />
+                    <span className="title">{p.title || "(untitled)"}</span>
+                  </div>
                   <span className="row-right">
                     <span className="badge">{p.num_tracks}</span>
                     <button className="row-del" title="Delete playlist" onClick={(e) => removePlaylist(p, e)}>
@@ -141,14 +145,20 @@ export function LibraryView() {
               {selected ? (
                 <>
                   <h3>{selected.title || "(untitled)"}</h3>
-                  <ol className="tracklist">
+                  <ul className="list">
                     {plTracks.map((t) => (
-                      <li key={t.id}>
-                        <span className="title">{t.title}</span>
-                        <span className="muted"> — {t.artist_name}</span>
+                      <li key={t.id} className="row">
+                        <div className="row-main">
+                          <Thumb src={t.image} alt={t.album_title ?? t.title} />
+                          <span className="title">
+                            {t.title}
+                            {t.explicit && <span className="explicit">E</span>}
+                            <span className="muted"> — {t.artist_name}</span>
+                          </span>
+                        </div>
                       </li>
                     ))}
-                  </ol>
+                  </ul>
                 </>
               ) : (
                 <p className="muted">Select a playlist to see its tracks.</p>
@@ -161,7 +171,10 @@ export function LibraryView() {
           <ul className="list">
             {artists.map((a) => (
               <li key={a.id} className="row">
-                <span className="title">{a.name}</span>
+                <div className="row-main">
+                  <Thumb src={a.picture} round alt={a.name} />
+                  <span className="title">{a.name}</span>
+                </div>
               </li>
             ))}
           </ul>
@@ -171,8 +184,14 @@ export function LibraryView() {
           <ul className="list">
             {tracks.map((t) => (
               <li key={t.id} className="row">
-                <span className="title">{t.title}</span>
-                <span className="muted"> — {t.artist_name}</span>
+                <div className="row-main">
+                  <Thumb src={t.image} alt={t.album_title ?? t.title} />
+                  <span className="title">
+                    {t.title}
+                    {t.explicit && <span className="explicit">E</span>}
+                    <span className="muted"> — {t.artist_name}</span>
+                  </span>
+                </div>
               </li>
             ))}
           </ul>

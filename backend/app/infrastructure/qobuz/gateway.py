@@ -287,6 +287,8 @@ def _track(t: dict) -> Track:
         album_id=str(al["id"]) if al.get("id") is not None else None,
         album_title=al.get("title"),
         isrc=t.get("isrc"),
+        image=_img(al.get("image")),
+        explicit=bool(t.get("parental_warning")),
     )
 
 

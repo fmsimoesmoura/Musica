@@ -37,6 +37,8 @@ class Track:
     album_id: Optional[str] = None
     album_title: Optional[str] = None
     isrc: Optional[str] = None
+    image: Optional[str] = None  # album-cover URL, for display in track lists
+    explicit: Optional[bool] = None
 
 
 @dataclass

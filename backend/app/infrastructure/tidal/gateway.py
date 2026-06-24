@@ -281,8 +281,15 @@ def _paginate(fetch: Callable[[int, int], list]) -> list:
     return out
 
 
+def _img_url(uuid: Any, size: int = 320) -> Optional[str]:
+    """Tidal image UUIDs map to URLs by replacing dashes with path separators."""
+    if not uuid or not isinstance(uuid, str):
+        return None
+    return f"https://resources.tidal.com/images/{uuid.replace('-', '/')}/{size}x{size}.jpg"
+
+
 def _artist(a: Any) -> Artist:
-    return Artist(id=str(a.id), name=_attr(a, "name", default=""), picture=_attr(a, "picture"))
+    return Artist(id=str(a.id), name=_attr(a, "name", default=""), picture=_img_url(_attr(a, "picture")))
 
 
 def _album(al: Any) -> Album:
@@ -292,7 +299,7 @@ def _album(al: Any) -> Album:
         title=_attr(al, "name", "title", default=""),
         artist_id=str(artist.id) if artist else None,
         artist_name=_attr(artist, "name") if artist else None,
-        cover=_attr(al, "cover"),
+        cover=_img_url(_attr(al, "cover")),
         num_tracks=_attr(al, "num_tracks"),
         release_date=str(_attr(al, "release_date", default="")) or None,
     )
@@ -310,6 +317,8 @@ def _track(t: Any) -> Track:
         album_id=str(album.id) if album else None,
         album_title=_attr(album, "name", "title") if album else None,
         isrc=_attr(t, "isrc"),
+        image=_img_url(_attr(album, "cover")) if album else None,
+        explicit=_attr(t, "explicit"),
     )
 
 
@@ -321,6 +330,6 @@ def _playlist(pl: Any) -> Playlist:
         description=_attr(pl, "description"),
         num_tracks=int(_attr(pl, "num_tracks", default=0) or 0),
         creator=_attr(creator, "name") if creator else None,
-        picture=_attr(pl, "picture", "square_picture"),
+        picture=_img_url(_attr(pl, "picture", "square_picture")),
         last_updated=str(_attr(pl, "last_updated", default="")) or None,
     )

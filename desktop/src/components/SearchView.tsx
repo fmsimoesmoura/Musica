@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../api";
+import { Thumb } from "./Thumb";
 import type { FavoriteType, SearchResults } from "../types";
 
 export function SearchView() {
@@ -88,7 +89,10 @@ export function SearchView() {
             <ul className="list">
               {results.artists.map((a) => (
                 <li key={a.id} className="row">
-                  <span className="title">{a.name}</span>
+                  <div className="row-main">
+                    <Thumb src={a.picture} round alt={a.name} />
+                    <span className="title">{a.name}</span>
+                  </div>
                   <Heart type="artist" id={a.id} />
                 </li>
               ))}
@@ -102,9 +106,12 @@ export function SearchView() {
             <ul className="list">
               {results.albums.map((a) => (
                 <li key={a.id} className="row">
-                  <span className="title">
-                    {a.title} <span className="muted">— {a.artist_name}</span>
-                  </span>
+                  <div className="row-main">
+                    <Thumb src={a.cover} alt={a.title} />
+                    <span className="title">
+                      {a.title} <span className="muted">— {a.artist_name}</span>
+                    </span>
+                  </div>
                   <Heart type="album" id={a.id} />
                 </li>
               ))}
@@ -118,9 +125,14 @@ export function SearchView() {
             <ul className="list">
               {results.tracks.map((t) => (
                 <li key={t.id} className="row">
-                  <span className="title">
-                    {t.title} <span className="muted">— {t.artist_name}</span>
-                  </span>
+                  <div className="row-main">
+                    <Thumb src={t.image} alt={t.album_title ?? t.title} />
+                    <span className="title">
+                      {t.title}
+                      {t.explicit && <span className="explicit">E</span>}
+                      <span className="muted"> — {t.artist_name}</span>
+                    </span>
+                  </div>
                   <Heart type="track" id={t.id} />
                 </li>
               ))}

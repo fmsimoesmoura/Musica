@@ -426,6 +426,8 @@ def _track(t: dict) -> Track:
         album_id=al.get("id"),
         album_title=al.get("name"),
         isrc=(t.get("external_ids") or {}).get("isrc"),
+        image=_img(al.get("images")),
+        explicit=t.get("explicit"),
     )
 
 

@@ -43,6 +43,8 @@ export interface Track {
   album_id: string | null;
   album_title: string | null;
   isrc: string | null;
+  image: string | null;
+  explicit: boolean | null;
 }
 
 export interface Artist {
@@ -57,6 +59,7 @@ export interface Album {
   artist_name: string | null;
   num_tracks: number | null;
   release_date: string | null;
+  cover: string | null;
 }
 
 export type FavoriteType = "track" | "artist" | "album";

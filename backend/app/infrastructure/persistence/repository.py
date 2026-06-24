@@ -157,6 +157,7 @@ def _track_row(t: Track) -> TrackRow:
     return TrackRow(
         id=t.id, title=t.title, duration=t.duration, artist_id=t.artist_id,
         artist_name=t.artist_name, album_id=t.album_id, album_title=t.album_title, isrc=t.isrc,
+        image=t.image, explicit=t.explicit,
     )
 
 
@@ -182,6 +183,7 @@ def _track_entity(r: TrackRow) -> Track:
     return Track(
         id=r.id, title=r.title, duration=r.duration, artist_id=r.artist_id,
         artist_name=r.artist_name, album_id=r.album_id, album_title=r.album_title, isrc=r.isrc,
+        image=r.image, explicit=r.explicit,
     )
 
 

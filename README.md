@@ -1,6 +1,6 @@
 # Tidal Manager
 
-**v0.4.0 · macOS + Windows · Tidal + Spotify + Qobuz**
+**v0.5.0 · macOS + Windows · Tidal + Spotify + Qobuz**
 
 A personal desktop app to manage your music — across **Tidal**, **Spotify**, and
 **Qobuz** — search each catalog, and discover new artists that fit your taste
@@ -358,5 +358,7 @@ keyring backend is available.
   import/search/favorites/playlists, Last.fm-powered discovery).
 - **Qobuz connector (v0.4.0)** ✅ email/password login, import/search/favorites/
   playlists, Last.fm-powered discovery.
+- **Richer library (v0.5.0)** ✅ artwork (artist/album/playlist/track images) +
+  explicit flags imported and shown as thumbnails in Search & Library.
 
 Progress is tracked in GitHub issues (#4 is the roadmap).

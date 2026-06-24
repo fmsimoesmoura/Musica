@@ -76,6 +76,12 @@ distributed training infrastructure; a public product launch.
 > Ordering reflects *local-first*, and front-loads instrumentation so the
 > Preliminary Phase has data to reason about.
 
+- **Phase 0 — Theoretical foundations (current task).** A paper-style background
+  study of Large Language Models — what they are, how they work, how one is built
+  "from zero" (conceptually) and adapted/tuned, and a critical assessment of
+  whether an LLM is the right model for our recommendation task. See
+  [research/LLM_FOUNDATIONS.md](research/LLM_FOUNDATIONS.md). *(The Phase-1
+  data-schema questions are deferred until after this study.)*
 - **Phase 1 — Instrument the loop (local).** Add per-track 1–5 rating to Discover;
   define & persist the **data schema** (§8) locally, including full suggestion
   *attribution* (which model/version, seed context, rank, score, explanation).

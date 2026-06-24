@@ -40,6 +40,22 @@ jobs:
       - name: Build app bundle
         working-directory: desktop
         run: npm run tauri build
+
+      # Portable Windows build: a no-install folder you can unzip & run anywhere
+      # (no admin rights). The app + its sidecar live side-by-side; data goes to the
+      # user's %APPDATA%. Needs WebView2 (preinstalled on Windows 10/11).
+      - name: Assemble portable (Windows)
+        if: matrix.name == 'windows'
+        shell: pwsh
+        run: |
+          $app = "portable/Music Manager"
+          New-Item -ItemType Directory -Force -Path $app | Out-Null
+          Copy-Item "desktop/src-tauri/target/release/desktop.exe" "$app/Music Manager.exe"
+          Copy-Item "desktop/src-tauri/binaries/tidal-backend-x86_64-pc-windows-msvc.exe" "$app/tidal-backend.exe"
+          Get-ChildItem "desktop/src-tauri/target/release/*.dll" -ErrorAction SilentlyContinue | Copy-Item -Destination $app
+          "Music Manager — portable build`r`nUnzip anywhere and run 'Music Manager.exe'. No install or admin rights needed.`r`nNeeds the Microsoft WebView2 runtime (already on Windows 10/11)." | Out-File -Encoding utf8 "$app/READ ME.txt"
+          Compress-Archive -Path "portable/Music Manager" -DestinationPath "Music-Manager-portable-windows.zip" -Force
+
       - name: Upload bundles
         uses: actions/upload-artifact@v4
         with:
@@ -49,6 +65,7 @@ jobs:
             desktop/src-tauri/target/release/bundle/**/*.dmg
             desktop/src-tauri/target/release/bundle/**/*.msi
             desktop/src-tauri/target/release/bundle/**/*.exe
+            Music-Manager-portable-windows.zip
 
   # NOTE: Intel macOS (macos-13) is intentionally omitted — GitHub's Intel runners
   # queue indefinitely (capacity is being retired). Intel users build from source
@@ -73,3 +90,4 @@ jobs:
             dist/**/*.dmg
             dist/**/*.msi
             dist/**/*.exe
+            dist/**/*.zip

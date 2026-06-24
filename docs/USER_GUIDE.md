@@ -1,4 +1,4 @@
-# Tidal Manager — User Guide
+# Music Manager — User Guide
 
 A desktop app to manage your music library and discover new artists across
 **Tidal**, **Spotify**, and **Qobuz** — all in one place.
@@ -24,8 +24,8 @@ Download the installer for your computer from the
 **[latest release](../../releases/latest)**.
 
 ### macOS (Apple Silicon — M1/M2/M3…)
-1. Download `Tidal Manager_<version>_aarch64.dmg`.
-2. Double-click it, then drag **Tidal Manager** into your **Applications** folder.
+1. Download `Music Manager_<version>_aarch64.dmg`.
+2. Double-click it, then drag **Music Manager** into your **Applications** folder.
 3. The first time you open it, macOS may say it's from an unidentified developer
    (the app isn't paid-signed). To open it: **right-click the app → Open → Open**.
    You only need to do this once.
@@ -37,11 +37,23 @@ Download the installer for your computer from the
 > Intel build, or build from source (see the README).
 
 ### Windows (10/11, 64-bit)
-1. Download `Tidal Manager_<version>_x64-setup.exe` and run it.
+1. Download `Music Manager_<version>_x64-setup.exe` and run it.
 2. Windows SmartScreen may warn that it's unrecognized (unsigned). Click
    **More info → Run anyway**.
 3. If prompted, allow the **WebView2** component to install (Windows 11 already has it).
-4. Launch **Tidal Manager** from the Start menu.
+4. Launch **Music Manager** from the Start menu.
+
+### Windows — portable (no installation / no admin rights)
+For locked-down work computers where you can't install software:
+1. Download **`Music-Manager-portable-windows.zip`** from the
+   [latest release](../../releases/latest).
+2. **Right-click → Extract All** to any folder you can write to (Desktop, Documents,
+   or a USB stick).
+3. Open the extracted **Music Manager** folder and double-click **`Music Manager.exe`**.
+
+No installer, no admin password. Your data and logins are saved under your own user
+account. (It needs Microsoft **WebView2**, which is already installed on virtually
+all Windows 10/11 machines — including most company ones.)
 
 ---
 
@@ -132,7 +144,7 @@ stays logged in.
 
 ## 5. Where your data lives & privacy
 
-- Everything runs **on your computer** — there's no Tidal Manager server.
+- Everything runs **on your computer** — there's no Music Manager server.
 - Your imported library is a local database; logins/keys are stored in your
   **operating system's secure credential store** (macOS Keychain / Windows
   Credential Manager), with a restricted local file as fallback.

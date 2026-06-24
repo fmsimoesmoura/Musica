@@ -1,6 +1,6 @@
-# Tidal Manager
+# Music Manager
 
-**v0.5.0 · macOS + Windows · Tidal + Spotify + Qobuz**
+**v0.6.0 · macOS + Windows · Tidal + Spotify + Qobuz**
 
 A personal desktop app to manage your music — across **Tidal**, **Spotify**, and
 **Qobuz** — search each catalog, and discover new artists that fit your taste
@@ -99,10 +99,10 @@ Installers are built by GitHub Actions (see [Building](#building-installers)).
 
 ### macOS (Apple Silicon)
 
-1. Download `Tidal Manager_<version>_aarch64.dmg` from the [latest Release](../../releases/latest).
-2. Open the `.dmg` and drag **Tidal Manager** into **Applications**.
+1. Download `Music Manager_<version>_aarch64.dmg` from the [latest Release](../../releases/latest).
+2. Open the `.dmg` and drag **Music Manager** into **Applications**.
 3. First launch (Gatekeeper): **right-click the app → Open → Open**.
-   (Or once: `xattr -dr com.apple.quarantine "/Applications/Tidal Manager.app"`.)
+   (Or once: `xattr -dr com.apple.quarantine "/Applications/Music Manager.app"`.)
 4. macOS asks to allow keychain access (enter your **Mac login password**) → click
    **Always Allow**. That's where your tokens are stored.
 5. Click **Connect Tidal** → approve in the browser → **Import library**.
@@ -113,14 +113,18 @@ Installers are built by GitHub Actions (see [Building](#building-installers)).
 ### Windows (x64)
 
 1. Download & unzip `tidal-manager-windows`, giving an installer:
-   `Tidal Manager_<version>_x64-setup.exe` (recommended) or `Tidal Manager_<version>_x64_en-US.msi`.
+   `Music Manager_<version>_x64-setup.exe` (recommended) or `Music Manager_<version>_x64_en-US.msi`.
 2. Run it. SmartScreen may warn (unsigned) → **More info → Run anyway**.
 3. If prompted, allow the **WebView2 runtime** to install (Tauri handles it; it's
    already present on Windows 11).
-4. Launch **Tidal Manager** from the Start menu → **Connect Tidal** → approve in the
+4. Launch **Music Manager** from the Start menu → **Connect Tidal** → approve in the
    browser → **Import library**.
 
 *Tokens* are stored in the **Windows Credential Manager** (no extra prompt).
+
+**Portable (no install / no admin):** download `Music-Manager-portable-windows.zip`,
+extract anywhere, and run `Music Manager.exe`. Ideal for locked-down work PCs — data
+goes to your own `%APPDATA%`. Needs WebView2 (present on Windows 10/11).
 
 ### Optional on both: free local AI discovery
 
@@ -279,8 +283,8 @@ cd ../desktop && npm run tauri build
 ```
 
 Outputs:
-- **macOS** → `src-tauri/target/release/bundle/dmg/Tidal Manager_<version>_aarch64.dmg` (+ `.app`)
-- **Windows** → `…/bundle/nsis/Tidal Manager_<version>_x64-setup.exe` and `…/bundle/msi/Tidal Manager_<version>_x64_en-US.msi`
+- **macOS** → `src-tauri/target/release/bundle/dmg/Music Manager_<version>_aarch64.dmg` (+ `.app`)
+- **Windows** → `…/bundle/nsis/Music Manager_<version>_x64-setup.exe` and `…/bundle/msi/Music Manager_<version>_x64_en-US.msi`
 
 In **release** the Rust shell launches the bundled sidecar (`tidal-backend` /
 `tidal-backend.exe`, placed next to the app executable); in **dev** it launches the

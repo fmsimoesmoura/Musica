@@ -5,6 +5,7 @@ import { LibraryView } from "./components/LibraryView";
 import { SearchView } from "./components/SearchView";
 import { DiscoverView } from "./components/DiscoverView";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { ProviderIcon } from "./components/ProviderIcon";
 import type { ProviderInfo } from "./types";
 import "./App.css";
 
@@ -89,6 +90,7 @@ export default function App() {
           title={IMPLEMENTED.has(p.provider) ? "" : "Coming soon"}
           onClick={() => switchProvider(p.provider)}
         >
+          <ProviderIcon name={p.provider} />
           {PROVIDER_LABELS[p.provider] ?? p.provider}
           {p.connected && <span className="dot" />}
         </button>
@@ -100,7 +102,7 @@ export default function App() {
     <div className="app">
       <header className="appbar">
         <div className="appbar-left">
-          <strong>Tidal Manager</strong>
+          <strong>Music Manager</strong>
           {providerBar}
           {phase === "connected" && (
             <nav className="nav">

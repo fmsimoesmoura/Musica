@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Tidal Manager", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Music Manager", version="0.1.0", lifespan=lifespan)
 
 # Local-only sidecar bound to 127.0.0.1; permissive CORS for the Tauri/Vite origin.
 app.add_middleware(

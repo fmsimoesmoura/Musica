@@ -75,7 +75,7 @@ export function ConnectPanel({
   return (
     <div className="center">
       <div className="card">
-        <h1>Tidal Manager</h1>
+        <h1>Music Manager</h1>
         <p className="muted">Connect your {providerName} account to manage playlists and discover music.</p>
 
         {mode === "credentials" ? (

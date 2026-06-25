@@ -1,7 +1,7 @@
 # Theoretical Foundations: Large Language Models and Their Fit for Music Recommendation
 
 > **Project:** Music Manager — Goal 2 (community-labeled recommendation).
-> **Phase:** 0 — Theoretical foundations. **Status:** v0.1 draft for iteration.
+> **Phase:** 0 — Theoretical foundations. **Status:** v0.2 (incorporates adversarial peer review).
 >
 > This is a background study written in the style of a paper's *Foundations /
 > Related Work* chapter. Its purpose is not only to explain what a Large Language
@@ -69,14 +69,21 @@ similarity between a token's query and other tokens' keys determines how much ea
 *value* contributes:
 
 ```
-Attention(Q, K, V) = softmax( Q Kᵀ / √d ) V
+Attention(Q, K, V) = softmax( Q Kᵀ / √d_k ) V
 ```
 
+The denominator is **√d_k**, the per-head key/query dimension (under multi-head,
+`d_k = d_model / h`). The scaling offsets the dot product's variance, which grows with
+`d_k`; without it, large-magnitude scores push the softmax into saturated regions with
+vanishing gradients.
+
 Several such attention "heads" run in parallel (multi-head attention), letting the
-model attend to different kinds of relationships at once. Because attention is
-order-agnostic, **positional information** is injected separately (positional
-encodings). Attention layers are interleaved with token-wise feed-forward layers,
-and the whole stack uses residual connections and normalization to train stably.
+model attend to different kinds of relationships at once. Because self-attention is
+**permutation-equivariant** (reorder the inputs and the outputs reorder identically —
+it has no inherent notion of position), **positional information** is injected
+separately (positional encodings). Attention layers are interleaved with token-wise
+feed-forward layers, and the whole stack uses residual connections and normalization
+to train stably.
 
 Modern LLMs are typically **decoder-only** and **autoregressive**: they predict the
 next token given only the tokens before it (a causal mask), and generate text by
@@ -221,7 +228,11 @@ operationally heavy.
 Direct Preference Optimization (Rafailov et al., 2023) begins from the *same*
 KL-regularized objective but exploits the fact that it has a closed-form optimal
 policy. For that optimum, the reward can be re-expressed in terms of the policy itself:
-`r(x, y) = β · log [ π_θ(y|x) / π_ref(y|x) ] + (term independent of y)`.
+`r(x, y) = β · log [ π_θ(y|x) / π_ref(y|x) ] + β · log Z(x)`,
+where `Z(x)` is the partition function of the optimal policy (it depends on `x`, not
+`y`). Because the `β · log Z(x)` term is the **same for `y_w` and `y_l`**, it cancels
+in the Bradley–Terry *difference* below — which is precisely why both the reward model
+*and* the otherwise-intractable `Z(x)` disappear.
 
 Substituting this *implicit reward* into the Bradley–Terry preference loss makes the
 reward model vanish; the objective becomes a simple supervised loss over preference
@@ -244,18 +255,27 @@ options:
 
 - **Convert to pairs.** Within one context, a higher-rated suggestion "wins" over a
   lower-rated one, yielding preference pairs usable by DPO/RLHF.
-- **Use pointwise directly.** Train a reward/utility model by *regression* on the 1–5
-  score, or use methods built for unpaired, pointwise good/bad signals such as **KTO**
-  (Kahneman–Tversky Optimization; Ethayarajh et al., 2024). Related variants (e.g.,
-  IPO, Azar et al., 2024; ORPO, Hong et al., 2024) trade off robustness differently.
+- **Use pointwise directly.** Two sub-options that differ in what they preserve:
+  - **Reward/utility regression** on the raw 1–5 score keeps the full *ordinal*
+    information (a 5 is meaningfully better than a 4).
+  - **KTO** (Kahneman–Tversky Optimization; Ethayarajh et al., 2024) consumes a
+    *binary* desirable/undesirable label, so a 1–5 scale must first be **thresholded**
+    (e.g., ≥4 = desirable) — discarding ordinal detail that regression retains.
+
+Two related preference methods, often grouped but distinct: **IPO** (Azar et al.,
+2023) adds a regularizer that keeps DPO from over-optimizing when preferences are
+near-deterministic; **ORPO** (Hong et al., 2024) is **reference-free** — it folds an
+odds-ratio preference penalty into the SFT loss in a single stage, dropping `π_ref`
+entirely (attractive under our low-infrastructure, local-first constraint).
 
 ### What this means for our project
 
 Our ratings map cleanly onto this machinery — which is exactly why it warranted depth:
 
-- If we pursue an **LLM recommender**, **DPO or KTO** are the most attractive routes:
-  no reward model, no RL infrastructure, and a direct fit to explicit feedback (KTO
-  especially, since our 1–5 labels are pointwise).
+- If we pursue an **LLM recommender**, the no-reward-model, no-RL routes are most
+  attractive: **reward/utility regression** if we want to keep the full 1–5 ordinal
+  signal, or **DPO/KTO** if we convert ratings to preference pairs / a binary
+  threshold. (ORPO is appealing operationally for dropping the reference model.)
 - But the *same* ratings can instead train a **classical re-ranker or reward model by
   regression**, with far less machinery.
 
@@ -278,9 +298,25 @@ toolkit:
 - **Explicit vs. implicit feedback.** Our **1–5 ratings are explicit feedback** — a
   classic, information-rich signal (the setting of the well-known MovieLens datasets
   and the Netflix Prize). Much modern recsys instead uses implicit signals (clicks,
-  plays); explicit feedback is rarer and valuable but costlier to collect.
+  plays; e.g., Hu et al., 2008); explicit feedback is rarer and valuable but costlier
+  to collect.
 - **Learning to rank** trains models to *order* candidates well, optimizing ranking
   metrics directly — a natural framing for "re-rank the suggestions."
+- **Neural & two-tower recommenders.** Beyond 2009-era matrix factorization, modern
+  classical recsys uses neural collaborative filtering and **two-tower (dual-encoder)**
+  models that embed users and items into a shared space for fast approximate-nearest-
+  neighbor retrieval (Covington et al., 2016; Yi et al., 2019), plus feature-rich
+  models (wide-and-deep, factorization machines, DeepFM). A two-tower neural retriever
+  is, notably, the most **capacity-matched** classical counterpart to a local LLM under
+  our fairness constraint (PROJECT.md §4).
+- **Sequential / session-based recommenders.** Because a playlist is an *ordered*
+  signal, models that consume sequences are natural contenders: **GRU4Rec** (Hidasi et
+  al., 2016) and the self-attention models **SASRec** (Kang & McAuley, 2018) and
+  **BERT4Rec** (Sun et al., 2019). The last two are themselves attention sequence
+  models, structurally analogous to a decoder-only LLM (§3) — so a small,
+  domain-trained sequence recommender is another capacity-matched rival. (Caveat: our
+  signal is *explicit pointwise ratings*, not pure next-track continuation, so this is
+  one contender, not the presumptive winner.)
 
 There is also a growing literature on **LLMs *for* recommendation** — using them as
 zero-shot rankers, as feature/embedding generators, or fine-tuned on interaction data
@@ -382,15 +418,21 @@ Selected works (author, year, title) for follow-up reading:
 - Schulman et al., 2017 — *Proximal Policy Optimization Algorithms* (PPO).
 - Ouyang et al., 2022 — *Training Language Models to Follow Instructions with Human Feedback* (InstructGPT/RLHF).
 - Ethayarajh et al., 2024 — *KTO: Model Alignment as Prospect Theoretic Optimization.*
-- Azar et al., 2024 — *A General Theoretical Paradigm to Understand Learning from Human Preferences* (IPO).
+- Azar et al., 2023 — *A General Theoretical Paradigm to Understand Learning from Human Preferences* (IPO; AISTATS 2024).
 - Hong et al., 2024 — *ORPO: Monolithic Preference Optimization without Reference Model.*
 - Hoffmann et al., 2022 — *Training Compute-Optimal Large Language Models* (Chinchilla).
 - Wei et al., 2022 — *Emergent Abilities of Large Language Models.*
 - Schaeffer et al., 2023 — *Are Emergent Abilities of Large Language Models a Mirage?*
-- Rafailov et al., 2023 — *Direct Preference Optimization.*
+- Rafailov et al., 2023 — *Direct Preference Optimization: Your Language Model is Secretly a Reward Model.*
 - Dettmers et al., 2023 — *QLoRA: Efficient Finetuning of Quantized LLMs.*
 - Koren et al., 2009 — *Matrix Factorization Techniques for Recommender Systems.*
 - Hu et al., 2008 — *Collaborative Filtering for Implicit Feedback Datasets.*
+- Covington et al., 2016 — *Deep Neural Networks for YouTube Recommendations* (two-tower).
+- Yi et al., 2019 — *Sampling-Bias-Corrected Neural Modeling for Large Corpus Item Recommendations* (two-tower retrieval).
+- Hidasi et al., 2016 — *Session-based Recommendations with Recurrent Neural Networks* (GRU4Rec).
+- Kang & McAuley, 2018 — *Self-Attentive Sequential Recommendation* (SASRec).
+- Sun et al., 2019 — *BERT4Rec: Sequential Recommendation with Bidirectional Encoder Representations.*
+- Joachims et al., 2017 — *Unbiased Learning-to-Rank with Biased Feedback* (position-bias propensity).
 - Geng et al., 2022 — *Recommendation as Language Processing (P5).*
 - Bao et al., 2023 — *TALLRec: Tuning LLMs for Recommendation.*
 - Wu et al., 2023 — *A Survey on Large Language Models for Recommendation.*

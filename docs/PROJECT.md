@@ -1,10 +1,10 @@
 # Music Manager — Project Definition
 
-> **Status:** v0.3 — living draft. Hardened after an adversarial peer review (v0.2),
-> then resolved the open governance decisions (dataset scope, erasure, provider-ToS
-> strategy, deployment budget) (v0.3). We tune it before writing any Goal-2 code.
-> Decisions marked **[OPEN]** are still being settled; values marked **[pre-register]**
-> are fixed before the relevant phase, not now.
+> **Status:** v0.4 — living draft. Adversarial peer review (v0.2) → governance decisions
+> (v0.3) → open-feature sources resolved + concrete Phase-1 schema drafted
+> ([DATA_SCHEMA.md](research/DATA_SCHEMA.md)) (v0.4). We tune it before writing any
+> Goal-2 code. Decisions marked **[OPEN]** are still being settled; values marked
+> **[pre-register]** are fixed before the relevant phase, not now.
 
 ---
 
@@ -202,6 +202,10 @@ CF / two-tower / LLM-tuning only if data and gains justify it.
 
 ## 8. Data model (the critical early artifact)
 
+> The concrete field-level schema (tables, types, export-safe tags) is drafted in
+> **[research/DATA_SCHEMA.md](research/DATA_SCHEMA.md)** (v0.1). This section is the
+> rationale; that doc is the artifact to lock.
+
 Defined locally now, but **designed to port to the community backend unchanged**.
 Several fields are **load-bearing and unrecoverable if not logged at collection time**
 (flagged ⚠) — they must be in the Phase-1 schema, not added later.
@@ -233,7 +237,19 @@ ListenBrainz, Last.fm tags, AcousticBrainz) — *not* cached provider catalog me
 The streaming services are the listen/rate *surface*, not the dataset's data source.
 The `user_id`↔identity map is stored **separately and access-controlled** (§10).
 
-**[OPEN]** the exact open-feature set to snapshot (which sources/fields).
+**Decided — open-feature sources (chosen for redistribution safety):**
+- **Identity:** `ISRC` (recording) + **MusicBrainz** IDs (recording/artist/release MBIDs).
+- **Catalog metadata & tags:** **MusicBrainz** (core data is **CC0** — public-domain,
+  safe to redistribute): canonical title/artist/release/date + folksonomy genre tags.
+- **Audio descriptors:** **AcousticBrainz** (**CC0**), joined by recording MBID
+  (mood/danceability/genre descriptors; coverage is a frozen 2022 snapshot — acceptable).
+- **Popularity / co-listen (optional):** **ListenBrainz** (open).
+- **Last.fm tags** may be used as a *local-only* model input but are **excluded from any
+  published dataset** (Last.fm's terms restrict redistribution) — the publishable export
+  uses only the CC0 sources above.
+
+This keeps the shareable dataset = *users' 1–5 ratings of ISRC/MBID-keyed tracks with
+CC0 features*, with no provider-proprietary or non-redistributable data.
 
 ## 9. Evaluation plan
 

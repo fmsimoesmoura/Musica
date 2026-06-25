@@ -49,16 +49,37 @@ signal for choosing and improving the recommender.
 
 ## 4. Research question & success criteria
 
-**RQ (draft, [OPEN] for refinement):** *Can explicit community ratings (1–5) on
-suggestions generated from a user's playlists be used to select and train a
-recommender that produces measurably better suggestions than the current
-streaming-similarity / LLM-curated baseline?*
+**RQ:** *On our explicit-feedback music task, which established recommendation
+approach performs best, and how does an **LLM-based recommender** compare to it — can
+the LLM (or an LLM-hybrid) match or beat the best classical recommender, and under
+what conditions (data scale, cold start)?*
+
+This is a **head-to-head comparison**: identify the strongest classical recommender on
+our data, and pit it against an LLM-based one.
+
+**Working hypotheses:**
+- **H1 (data-rich):** once enough ratings exist, a classical model trained on the 1–5
+  feedback (learned re-ranker / collaborative filtering) outperforms the LLM on
+  personalized ranking.
+- **H2 (cold start / low data):** with few ratings, the LLM matches or beats classical
+  models by leveraging semantic/world knowledge.
+- **H3 (hybrid):** LLM candidate generation + a learned re-ranker beats either alone.
+
+**Fairness constraint (from design discussion):** the compared models must be
+**locally runnable with comparable capacity/resource footprints** — e.g., a **local
+LLM** (via Ollama, modest size) versus a lightweight learned recommender — so the
+comparison is apples-to-apples and consistent with our **local-first** stance. We
+avoid pitting a giant cloud LLM against a tiny local model.
+
+**Driving the experience with both:** during evaluation, the app serves suggestions
+from **both arms** (the classical model and the LLM), interleaved or A/B, so each gets
+rated by users. This yields the *paired, comparative* feedback the RQ needs.
 
 **Success looks like:**
-- **Offline:** a model predicts held-out ratings better than baseline (e.g. lower
-  MAE/RMSE) and ranks better (e.g. higher NDCG@k / hit-rate).
-- **Online:** the **average rating of suggestions goes up** versus baseline, in a
-  controlled comparison.
+- **Offline:** the better model predicts held-out ratings (lower MAE/RMSE) and ranks
+  better (higher NDCG@k / hit-rate) than the other, on proper splits.
+- **Online:** higher **average rating of served suggestions** for the winning arm, in
+  the controlled dual-arm comparison.
 - **Shippable:** the loop is a usable feature, not just a notebook.
 
 ## 5. Scope & non-goals
@@ -134,8 +155,9 @@ scheme.
 
 - **Offline:** rating prediction (MAE/RMSE); ranking (NDCG@k, MAP, hit-rate@k);
   proper **temporal + per-user splits** (no leakage).
-- **Online:** average suggestion rating, acceptance/add rate; **A/B** baseline vs
-  model; some **exploration** so we don't only learn about what we already show.
+- **Online:** average suggestion rating, acceptance/add rate; the **dual-arm**
+  comparison (classical vs LLM, **equal-capacity & local**, served interleaved/A/B);
+  some **exploration** so we don't only learn about what we already show.
 - **Bias controls:** exposure/feedback-loop bias (we only see ratings on shown
   items), popularity bias, rating subjectivity/noise.
 - **Rigor:** report uncertainty (CIs), pre-register metrics before Phase 3.

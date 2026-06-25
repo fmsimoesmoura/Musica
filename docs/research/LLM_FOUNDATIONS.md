@@ -161,7 +161,7 @@ Given a pretrained model, there is a spectrum of ways to specialize it, from
   Ouyang et al., 2022). **Direct Preference Optimization (DPO)** achieves a similar
   effect by optimizing directly on preference pairs, avoiding a separate RL loop
   (Rafailov et al., 2023). **This family is conceptually closest to our 1–5 ratings**:
-  a high rating versus a low one is a preference signal.
+  a high rating versus a low one is a preference signal. **Expanded in §6.1.**
 - **Parameter-efficient fine-tuning (PEFT).** Update only a small set of added
   parameters (e.g., low-rank adapters, **LoRA**; Hu et al., 2021; quantized variant
   **QLoRA**, Dettmers et al., 2023), making fine-tuning feasible on modest hardware
@@ -175,6 +175,92 @@ Given a pretrained model, there is a spectrum of ways to specialize it, from
 ratings could feed (a) prompt construction (few-shot exemplars of liked items), (b) a
 downstream ranking model that consumes LLM *embeddings*, or (c) preference tuning
 (SFT/DPO) of an LLM recommender — at very different costs and data requirements.
+
+## 6.1 Deep dive: learning from human preferences (RLHF, DPO, and pointwise variants)
+
+Because our 1–5 ratings are *human judgements of suggestions*, the machinery for
+turning human feedback into model updates is the most relevant family to understand
+in depth. Two paradigms dominate — Reinforcement Learning from Human Feedback (RLHF)
+and Direct Preference Optimization (DPO) — alongside *pointwise* variants that fit
+numeric ratings especially well.
+
+### Setup and notation
+
+A **policy** `π_θ(y | x)` is the model we want to improve: given a context `x` (e.g.,
+a user's taste and a candidate item) it assigns probability to an output `y` (e.g., a
+chosen recommendation). We keep a frozen **reference policy** `π_ref` — typically the
+supervised-fine-tuned (SFT) model — as an anchor. Human feedback arrives either as
+**comparisons** (output `y_w` "wins" over `y_l`) or **pointwise** labels (an output is
+good/bad, or carries a numeric score — like our 1–5).
+
+### RLHF — reward modeling + reinforcement learning
+
+RLHF (Christiano et al., 2017; Ouyang et al., 2022) has three stages:
+
+1. **SFT.** Fine-tune the base model on demonstrations to obtain a sensible starting
+   policy `π_ref`.
+2. **Reward model (RM).** Collect human *comparisons* and train a reward model
+   `r_φ(x, y)` so preferred outputs score higher. The standard choice uses the
+   Bradley–Terry preference model, giving the loss
+   `L_RM = − E[ log σ( r_φ(x, y_w) − r_φ(x, y_l) ) ]`,
+   where `σ` is the logistic function. The RM thus *learns to imitate human judgement*.
+3. **RL optimization.** Optimize the policy to maximize expected reward while staying
+   near the reference, via a KL-regularized objective
+   `max_θ  E_{y∼π_θ}[ r_φ(x, y) ]  −  β · KL( π_θ(·|x) ‖ π_ref(·|x) )`,
+   usually with Proximal Policy Optimization (PPO; Schulman et al., 2017).
+
+**Why the KL anchor matters:** without it, the policy can exploit imperfections in the
+learned reward (give absurd outputs high reward — "reward hacking"), so the constraint
+keeps it close to trusted behavior. **Costs/risks:** three-to-four models in play
+(policy, reward, reference, plus a value network in PPO), online sampling during
+training, and well-known instability and hyperparameter sensitivity. Powerful, but
+operationally heavy.
+
+### DPO — preferences without a reward model or RL
+
+Direct Preference Optimization (Rafailov et al., 2023) begins from the *same*
+KL-regularized objective but exploits the fact that it has a closed-form optimal
+policy. For that optimum, the reward can be re-expressed in terms of the policy itself:
+`r(x, y) = β · log [ π_θ(y|x) / π_ref(y|x) ] + (term independent of y)`.
+
+Substituting this *implicit reward* into the Bradley–Terry preference loss makes the
+reward model vanish; the objective becomes a simple supervised loss over preference
+pairs:
+`L_DPO = − E_{(x, y_w, y_l)} [ log σ( β·log(π_θ(y_w|x)/π_ref(y_w|x)) − β·log(π_θ(y_l|x)/π_ref(y_l|x)) ) ]`.
+
+In words: **increase the model's relative likelihood of the preferred output over the
+dispreferred one**, scaled by `β` and anchored to the reference. No separate reward
+model, no RL loop — a classification-style loss over pairs.
+
+**Trade-offs:** DPO is simpler, more stable, and cheaper, and is frequently competitive
+with RLHF. But it is *offline* (it learns only from a fixed preference set, with no
+online exploration), is sensitive to how pairs are sampled, and can over-optimize; `β`
+sets how strongly the reference anchors the update.
+
+### Pointwise ratings: KTO and reward regression
+
+Our signal is **pointwise** (a 1–5 score per suggestion), not naturally pairwise. Two
+options:
+
+- **Convert to pairs.** Within one context, a higher-rated suggestion "wins" over a
+  lower-rated one, yielding preference pairs usable by DPO/RLHF.
+- **Use pointwise directly.** Train a reward/utility model by *regression* on the 1–5
+  score, or use methods built for unpaired, pointwise good/bad signals such as **KTO**
+  (Kahneman–Tversky Optimization; Ethayarajh et al., 2024). Related variants (e.g.,
+  IPO, Azar et al., 2024; ORPO, Hong et al., 2024) trade off robustness differently.
+
+### What this means for our project
+
+Our ratings map cleanly onto this machinery — which is exactly why it warranted depth:
+
+- If we pursue an **LLM recommender**, **DPO or KTO** are the most attractive routes:
+  no reward model, no RL infrastructure, and a direct fit to explicit feedback (KTO
+  especially, since our 1–5 labels are pointwise).
+- But the *same* ratings can instead train a **classical re-ranker or reward model by
+  regression**, with far less machinery.
+
+Whether a preference-tuned LLM is worth its added cost over a simple learned ranker is
+precisely the question our adapted research hypothesis poses (PROJECT.md §4).
 
 ## 7. A short recommender-systems primer (for contrast)
 
@@ -293,7 +379,11 @@ Selected works (author, year, title) for follow-up reading:
 - Bommasani et al., 2021 — *On the Opportunities and Risks of Foundation Models.*
 - Hu et al., 2021 — *LoRA: Low-Rank Adaptation of Large Language Models.*
 - Christiano et al., 2017 — *Deep Reinforcement Learning from Human Preferences.*
+- Schulman et al., 2017 — *Proximal Policy Optimization Algorithms* (PPO).
 - Ouyang et al., 2022 — *Training Language Models to Follow Instructions with Human Feedback* (InstructGPT/RLHF).
+- Ethayarajh et al., 2024 — *KTO: Model Alignment as Prospect Theoretic Optimization.*
+- Azar et al., 2024 — *A General Theoretical Paradigm to Understand Learning from Human Preferences* (IPO).
+- Hong et al., 2024 — *ORPO: Monolithic Preference Optimization without Reference Model.*
 - Hoffmann et al., 2022 — *Training Compute-Optimal Large Language Models* (Chinchilla).
 - Wei et al., 2022 — *Emergent Abilities of Large Language Models.*
 - Schaeffer et al., 2023 — *Are Emergent Abilities of Large Language Models a Mirage?*

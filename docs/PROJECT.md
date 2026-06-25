@@ -1,9 +1,10 @@
 # Music Manager — Project Definition
 
-> **Status:** v0.2 — living draft, hardened after an adversarial peer review. This
-> document is the subject of our design iterations; we tune it before writing any
-> Goal-2 code. Decisions marked **[OPEN]** are still being settled; numeric values
-> marked **[pre-register]** are fixed before the relevant phase, not now.
+> **Status:** v0.3 — living draft. Hardened after an adversarial peer review (v0.2),
+> then resolved the open governance decisions (dataset scope, erasure, provider-ToS
+> strategy, deployment budget) (v0.3). We tune it before writing any Goal-2 code.
+> Decisions marked **[OPEN]** are still being settled; values marked **[pre-register]**
+> are fixed before the relevant phase, not now.
 
 ---
 
@@ -58,10 +59,11 @@ what conditions (data scale, cold start)?*
 This is a **head-to-head comparison**: identify the strongest classical recommender on
 our data, and pit it against an LLM-based one (or an **LLM-hybrid**).
 
-**Formal framing.** Let `C` be the candidate universe (resolved, provider-native track
-IDs). Each *arm* is a function that, given a user's taste/seed context, produces a
-ranking over `C`. LLM free-text outputs are **resolved/normalized to IDs in `C`**
-before scoring. All offline ranking metrics for the two arms are computed over the
+**Formal framing.** Let `C` be the candidate universe, keyed by **provider-neutral IDs**
+— **ISRC** (recording code) and/or **MusicBrainz** IDs, *not* a streaming service's
+internal id (see §11). Each *arm* is a function that, given a user's taste/seed context,
+produces a ranking over `C`. LLM free-text outputs are **resolved/normalized to IDs in
+`C`** before scoring. All offline ranking metrics for the two arms are computed over the
 **same candidate pool**; the online served-rating metric is a shared objective that
 does not require a shared pool.
 
@@ -93,8 +95,12 @@ parameters forces an absurd CF model). We therefore:
   equalized**, and that the LLM brings pretraining/world knowledge the classical model
   lacks (the H1-vs-H2 split is precisely designed to probe *when* that asymmetry helps);
 - **report ≥ 2 budget points** (a smaller and a larger local LLM) so conclusions are
-  not artifacts of one operating point;
-- **[pre-register]** the axis and budget points before viewing online results.
+  not artifacts of one operating point. Concretely: a stated **reference machine**
+  (e.g. a mainstream 16 GB laptop), a **peak-RAM ceiling**, and a **per-recommendation
+  latency budget**; two LLM operating points that fit — roughly a **~3–4B** and a
+  **~7–8B** quantized local model (via Ollama) — with the classical arm required to run
+  within the *same* RAM/latency. Exact ceilings/models are **[pre-register]**ed before
+  Phase 3.
 
 **Driving the experience with both.** During evaluation the app serves suggestions from
 **both arms**, with **user-level** randomized assignment and exposure-equalizing
@@ -202,8 +208,11 @@ Several fields are **load-bearing and unrecoverable if not logged at collection 
 
 - **Suggestion event** — `id`, `user_id` (pseudonymous), `created_at`, `provider`,
   `seed_context` (snapshot/hash of the seed playlists/favorite artists, time-stamped
-  with **no post-cutoff information**), `candidate_track_id` (resolved to `C`) + a
-  **time-stamped feature snapshot**, `rank`, `score`, `explanation`, and:
+  with **no post-cutoff information**), **`track_key`** — the **canonical neutral ID
+  (ISRC; MusicBrainz recording ID where available)**; the provider's own track id is
+  kept only as a *transient local lookup* and **never enters the shareable dataset** —
+  plus a **time-stamped feature snapshot** (from open sources, §11), `rank`, `score`,
+  `explanation`, and:
   - `model_id` + `model_version` — attribution; *without it we can't compare models*.
   - ⚠ **`propensity`** — probability this item was shown under the serving policy
     (needed for IPS/SNIPS off-policy estimation; §9).
@@ -218,10 +227,13 @@ Several fields are **load-bearing and unrecoverable if not logged at collection 
 - **Consent record** — `user_id`, **`consent_version`**, **`granted_at`**; invariant:
   **no upload/community ingestion without a valid consent record** (§10).
 
-**[OPEN]** exact feature-snapshot contents (prefer **provider-neutral IDs + locally
-derived features** over raw catalog metadata — see §11 ToS), and the
-identity/pseudonymization scheme (the `user_id`↔identity map is stored **separately and
-access-controlled**; see §10).
+**Decided (resolves the #3 ToS risk by design):** the dataset is keyed by **neutral IDs
+(ISRC/MusicBrainz)** with item features sourced from **open datasets** (MusicBrainz,
+ListenBrainz, Last.fm tags, AcousticBrainz) — *not* cached provider catalog metadata.
+The streaming services are the listen/rate *surface*, not the dataset's data source.
+The `user_id`↔identity map is stored **separately and access-controlled** (§10).
+
+**[OPEN]** the exact open-feature set to snapshot (which sources/fields).
 
 ## 9. Evaluation plan
 
@@ -231,6 +243,13 @@ metrics = a garden of forking paths). Before looking at results we fix: the **pr
 vs secondary metrics, the **model-selection decision rule**, the **split scheme**, and a
 final **held-out confirmatory split** (a fresh time-forward window) touched **once** for
 the reported head-to-head. A lighter second pre-registration precedes the Phase-3 A/B.
+
+*Data-dependent quantities and how they're fixed* (placeholders now, finalized from the
+Phase-1 pilot before they're used): **cold-start threshold `N`** = a stated percentile
+of the per-user rating-count distribution (placeholder ≈ 10–20); **TOST equivalence
+margin** = the smallest practically-meaningful ΔNDCG@k from a pilot / domain judgment
+(placeholder ≈ 0.02–0.05); **MDE / target sample size** = derived from the pilot's
+rating variance under the mixed-effects model below.
 
 - **Offline:** **NDCG@k primary** (MAP / hit-rate@k secondary); MAE/RMSE diagnostic
   only, for arms with a calibrated 1–5 output. Critically, logged ratings exist **only
@@ -285,13 +304,20 @@ Because we collect human feedback and (later) aggregate it, the principles below
   **re-identifiable fingerprint** (the Netflix-Prize re-identification lesson) and
   remains personal data under GDPR. Store the `user_id`↔identity map **separately and
   access-controlled**; hash/aggregate `seed_context`; minimize.
-- **Scope of use [OPEN — your call].** The aggregated user×track rating matrix is the
-  project's core asset. State its status — **private / shared-on-request / published** —
-  its **license**, and a **redistribution-consent** clause. Note that *collect-to-train*
-  vs *later-publish* is a **purpose change** requiring fresh consent.
-- **Erasure propagation [OPEN].** Deletion/opt-out must propagate to **trained models,
-  embeddings, frozen eval splits, and any published snapshot** — a real tension with the
-  fixed splits + pre-registration above; resolve the policy explicitly.
+- **Scope of use — decided: private now, publishable path.** The aggregated user×track
+  rating matrix stays **private during the research**, but is *built so it could be
+  released later* (MovieLens-style): neutral IDs + open features (§8, §11), explicit
+  opt-in, and de-identification. Because *collect-to-train* vs *later-publish* is a
+  **purpose change**, the consent flow includes an **optional, separate publish-consent**
+  captured up front (so a future release needs no re-contact), and any release ships
+  under a stated license.
+- **Erasure — decided: de-link + tombstone.** Ratings are stored under a pseudonym with
+  the **identity↔pseudonym map kept separate**. On an erasure request we **delete the
+  map entry** (the ratings become non-personal) and **exclude the user from all future
+  training/splits** (a tombstone); already-**frozen/pre-registered** experiments retain
+  only the now de-identified rows, so reproducibility survives. Models/embeddings pick up
+  the exclusion at the next scheduled retrain. This honors erasure *without* mutating a
+  frozen experiment.
 - **GDPR specifics.** Lawful basis, controller/processor roles, retention period,
   purpose-limitation, and **special-category risk** (fine-grained music taste can proxy
   for religion/politics).
@@ -305,17 +331,19 @@ Because we collect human feedback and (later) aggregate it, the principles below
 
 ## 11. Risks & open questions
 
-- **Provider Terms-of-Service [OPEN — resolve before Phase-1 schema lock].** We persist
-  feature/seed-context snapshots and intend to train a recommender and (maybe) share a
-  dataset — all of which provider terms may restrict. Run a **per-provider check**
-  resolving, for **Spotify / Tidal / Qobuz**: (a) may we persist feature/seed snapshots,
-  within caching limits? (b) may provider-derived data train/evaluate a recommender —
-  **note Spotify's Developer Terms prohibit using Spotify Content to train ML/AI**?
-  (c) may snapshots be aggregated/redistributed? (d) is reverse-engineered Tidal/Qobuz
-  access itself a breach, and what is the mitigation? **Design lever:** prefer storing
-  **provider-neutral IDs + locally derived features** over raw catalog metadata, and
-  gate any dataset publication on confirmed redistribution rights. This is both a legal
-  risk and a rigor risk (it can invalidate the pipeline or the shareability of results).
+- **Provider Terms-of-Service — largely resolved by design (decided).** Provider terms
+  restrict exactly what we'd otherwise want: **Spotify's Developer Terms prohibit using
+  Spotify Content to train ML/AI** and forbid derived catalog databases/redistribution;
+  **Tidal/Qobuz** are reached via reverse-engineered APIs whose access is itself
+  unauthorized. **Resolution:** the research dataset is **decoupled from provider
+  catalog data** — keyed by **neutral IDs (ISRC/MusicBrainz)** with features from **open
+  datasets** (§8), so the trainable/shareable asset contains *no provider proprietary
+  content*. The streaming services are only the **listen/rate surface**, not the data
+  source. *Residual items:* (a) the in-app *transient* provider lookups stay personal-use
+  and never enter the dataset; (b) reverse-engineered Tidal/Qobuz access remains a
+  personal-use gray area for the app (already noted); (c) before any public release,
+  confirm the open-feature sources' licenses permit redistribution. Verify current
+  provider terms at schema-lock time, since they change.
 - **[OPEN] Model choice** — deferred to the Preliminary Phase (§7), by design.
 - **Cold start & sparsity** — few users/ratings early; content/LLM features must carry
   the start (the cold-start stratum, §9, makes this measurable).
@@ -331,15 +359,14 @@ Because we collect human feedback and (later) aggregate it, the principles below
 
 Ordered by dependency (schema-affecting and unrecoverable items first):
 
-1. Resolve the **[OPEN]** decisions that *gate the schema*: the per-provider **ToS
-   check** (§11), the **scope-of-use** position for the dataset (§10), and confirm the
-   **ethics/IRB** path (§10).
+1. ✅ **Resolved (v0.3):** dataset **scope of use** (private, publishable path), **erasure**
+   policy (de-link + tombstone), and the **provider-ToS strategy** (neutral-ID + open-feature
+   decoupling). *Remaining gate:* confirm the **ethics/IRB** path (§10) and the exact
+   **open-feature sources** (§8 [OPEN]).
 2. Lock the **Phase-1 data schema** (§8) — including the ⚠ load-bearing fields
-   (propensity, arm/assignment, inference config, familiarity, consent) that are
-   **unrecoverable if not logged from day one**.
+   (propensity, arm/assignment, inference config, familiarity, consent, neutral `track_key`)
+   that are **unrecoverable if not logged from day one**.
 3. **Pre-register** the evaluation protocol (§9) before any benchmarking.
 4. Then (and only then) begin Phase-1 implementation.
 
 > Nothing here is coded yet — this is the project definition we refine together.
-> v0.2 incorporates the verified findings of an adversarial peer review; the few
-> genuine value-choices it surfaced are left as **[OPEN]** for you to set.

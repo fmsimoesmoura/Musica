@@ -57,10 +57,17 @@ errors.
 - §11: a **per-provider ToS check** (incl. Spotify's prohibition on training ML on its
   content) to resolve before the schema locks.
 
-## Open decisions surfaced (yours to set)
+## Open decisions surfaced — resolved in v0.3
 
-- **Dataset scope of use** — private / shared-on-request / published, + license (§10).
-- **Erasure-propagation** policy vs fixed splits (§10).
-- **Per-provider ToS** outcomes (§11) — gate the schema.
-- Numeric **[pre-register]** values (threshold `N`, equivalence margin, MDE, budget
-  points) — fixed before the relevant phase, not now.
+- **Dataset scope of use** → **private now, publishable path** (neutral IDs + open
+  features + opt-in publish-consent make a later MovieLens-style release possible) (§10).
+- **Erasure** → **de-link + tombstone** (delete identity↔pseudonym map + exclude from
+  future training; frozen experiments keep de-identified rows) (§10).
+- **Provider ToS** → **resolved by design**: decouple the dataset from provider catalog
+  data via **ISRC/MusicBrainz keying + open-dataset features**; services are the
+  listen/rate surface only (§8, §11).
+- **Deployment budget** → reference machine + RAM/latency budget, two LLM points
+  (~3–4B, ~7–8B), classical arm within the same budget (§4).
+- Still **[pre-register]** (data-dependent, fixed from the Phase-1 pilot): threshold `N`,
+  TOST margin, MDE.
+- Remaining **[OPEN]**: ethics/IRB path; exact open-feature sources/fields.

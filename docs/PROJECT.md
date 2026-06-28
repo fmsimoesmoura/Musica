@@ -1,10 +1,10 @@
 # Music Manager — Project Definition
 
-> **Status:** v0.4 — living draft. Adversarial peer review (v0.2) → governance decisions
-> (v0.3) → open-feature sources resolved + concrete Phase-1 schema drafted
-> ([DATA_SCHEMA.md](research/DATA_SCHEMA.md)) (v0.4). We tune it before writing any
-> Goal-2 code. Decisions marked **[OPEN]** are still being settled; values marked
-> **[pre-register]** are fixed before the relevant phase, not now.
+> **Status:** v0.5 — living draft. Adversarial peer review (v0.2) → governance decisions
+> (v0.3) → open-feature sources + concrete Phase-1 schema ([DATA_SCHEMA.md](research/DATA_SCHEMA.md))
+> (v0.4) → ethics path settled, all governance gates cleared (v0.5). We tune it before
+> writing any Goal-2 code. Decisions marked **[OPEN]** are still being settled; values
+> marked **[pre-register]** are fixed before the relevant phase, not now.
 
 ---
 
@@ -313,9 +313,12 @@ Because we collect human feedback and (later) aggregate it, the principles below
   / `granted_at`** record per user (§8); the hard invariant **no analysis-bound
   collection or upload without a valid consent record**. *(Even Phase-1/2 local ratings
   are analysis-bound — consent and the ethics gate precede them.)*
-- **IRB / ethics timing gate.** If pursued academically, institutional ethics review (or
-  a documented exemption) **precedes any analysis-bound collection** — it is a gate, not
-  a footnote.
+- **Ethics path — decided: independent / personal research.** No institutional IRB
+  applies. We nonetheless hold a **self-applied ethics standard** as a gate before any
+  analysis-bound collection: a **plain-language consent notice** (versioned, recorded per
+  §8 `consent`), **opt-in only**, de-identification, and the GDPR-style principles below.
+  *(If the project later gains a university affiliation, a formal ethics review precedes
+  any further collection.)*
 - **Pseudonymity ≠ anonymity.** A stable `user_id` + `seed_context` + ratings is a
   **re-identifiable fingerprint** (the Netflix-Prize re-identification lesson) and
   remains personal data under GDPR. Store the `user_id`↔identity map **separately and
@@ -375,13 +378,13 @@ Because we collect human feedback and (later) aggregate it, the principles below
 
 Ordered by dependency (schema-affecting and unrecoverable items first):
 
-1. ✅ **Resolved (v0.3):** dataset **scope of use** (private, publishable path), **erasure**
-   policy (de-link + tombstone), and the **provider-ToS strategy** (neutral-ID + open-feature
-   decoupling). *Remaining gate:* confirm the **ethics/IRB** path (§10) and the exact
-   **open-feature sources** (§8 [OPEN]).
-2. Lock the **Phase-1 data schema** (§8) — including the ⚠ load-bearing fields
-   (propensity, arm/assignment, inference config, familiarity, consent, neutral `track_key`)
-   that are **unrecoverable if not logged from day one**.
+1. ✅ **Governance gates cleared:** dataset **scope** (private, publishable path),
+   **erasure** (de-link + tombstone), **provider-ToS** (neutral-ID + open-feature
+   decoupling), **open-feature sources** (CC0-leaning; §8), and the **ethics path**
+   (independent research, self-applied standard; §10).
+2. **Lock the Phase-1 data schema** — resolve the remaining `[OPEN]` items in
+   [DATA_SCHEMA.md](research/DATA_SCHEMA.md) (synthesized `track_key`, seed storage,
+   feature subset, identity-store split, retention), then freeze v1.
 3. **Pre-register** the evaluation protocol (§9) before any benchmarking.
 4. Then (and only then) begin Phase-1 implementation.
 

@@ -68,6 +68,9 @@ errors.
   listen/rate surface only (§8, §11).
 - **Deployment budget** → reference machine + RAM/latency budget, two LLM points
   (~3–4B, ~7–8B), classical arm within the same budget (§4).
+- **Open-feature sources** → CC0-leaning (ISRC/MusicBrainz/AcousticBrainz; Last.fm
+  local-only) (§8); **ethics path** → independent research, self-applied standard (§10).
+  *All governance gates cleared.*
 - Still **[pre-register]** (data-dependent, fixed from the Phase-1 pilot): threshold `N`,
   TOST margin, MDE.
-- Remaining **[OPEN]**: ethics/IRB path; exact open-feature sources/fields.
+- Remaining **[OPEN]**: the field-level `DATA_SCHEMA.md` items to settle before locking v1.
